@@ -41,6 +41,7 @@ export function Navbar() {
                 </div>
               )}
             </div>
+            <Link href="/catalogo" className="text-gray-600 hover:text-primary-600 font-medium transition-colors">Catálogo</Link>
             <Link href="/material-educativo" className="text-gray-600 hover:text-primary-600 font-medium transition-colors">Material Educativo</Link>
             <Link href="/comunidad" className="text-gray-600 hover:text-primary-600 font-medium transition-colors">Comunidad</Link>
             <Link href="/buscar" className="text-gray-600 hover:text-primary-600 transition-colors"><Search size={20} /></Link>
@@ -102,6 +103,7 @@ export function Navbar() {
                 <Link key={c.id} href={`/cursos/${c.slug}`} className="block py-1.5 text-gray-700 hover:text-primary-600" onClick={() => setMenuOpen(false)}>{c.name}</Link>
               ))}
             </div>
+            <Link href="/catalogo" className="block py-1.5 text-gray-700 hover:text-primary-600" onClick={() => setMenuOpen(false)}>Catálogo</Link>
             <Link href="/material-educativo" className="block py-1.5 text-gray-700 hover:text-primary-600" onClick={() => setMenuOpen(false)}>Material Educativo</Link>
             <Link href="/comunidad" className="block py-1.5 text-gray-700 hover:text-primary-600" onClick={() => setMenuOpen(false)}>Comunidad</Link>
             <Link href="/buscar" className="block py-1.5 text-gray-700 hover:text-primary-600" onClick={() => setMenuOpen(false)}>Buscar</Link>

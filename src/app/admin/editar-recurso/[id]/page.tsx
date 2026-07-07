@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { Upload, Save, FileText, Image, Check, Clock } from 'lucide-react'
 import { courses, areas, subareas } from '@/lib/data'
+import { TagInput } from '@/components/TagInput'
 
 export default function EditResourcePage() {
   const router = useRouter()
@@ -232,8 +233,13 @@ export default function EditResourcePage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tags (separados por coma)</label>
-            <input type="text" value={tagsInput} onChange={e => setTagsInput(e.target.value)} className="input-field" placeholder="memoria de trabajo, atención, funciones ejecutivas" />
+            <label className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
+            <TagInput
+              value={tagsInput}
+              onChange={setTagsInput}
+              courseId={courseId}
+              areaId={areaId}
+            />
           </div>
 
           <div>
@@ -286,7 +292,7 @@ export default function EditResourcePage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Archivo PDF</label>
-            <input ref={pdfInputRef} type="file" accept=".pdf" onChange={handlePdfSelect} className="hidden" />
+            <input ref={pdfInputRef} type="file" accept=".pdf,.docx,.pptx" onChange={handlePdfSelect} className="hidden" />
             <div
               onClick={() => pdfInputRef.current?.click()}
               className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary-400 transition-colors cursor-pointer"

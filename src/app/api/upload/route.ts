@@ -4,10 +4,27 @@ import path from 'path'
 import { getSession } from '@/lib/auth'
 
 const ALLOWED_TYPES: Record<string, string[]> = {
-  pdf: ['.pdf'],
+  pdf: ['.pdf', '.docx', '.pptx'],
   preview: ['.png', '.jpg', '.jpeg', '.webp'],
 }
-const MAX_SIZE = 20 * 1024 * 1024
+const MAX_SIZE = 50 * 1024 * 1024
+
+const MAGIC_BYTES: Record<string, Uint8Array[]> = {
+  '.pdf': [new Uint8Array([0x25, 0x50, 0x44, 0x46])],
+  '.docx': [new Uint8Array([0x50, 0x4B, 0x03, 0x04])],
+  '.pptx': [new Uint8Array([0x50, 0x4B, 0x03, 0x04])],
+  '.png': [new Uint8Array([0x89, 0x50, 0x4E, 0x47])],
+  '.jpg': [new Uint8Array([0xFF, 0xD8, 0xFF])],
+  '.jpeg': [new Uint8Array([0xFF, 0xD8, 0xFF])],
+  '.webp': [new Uint8Array([0x52, 0x49, 0x46, 0x46])],
+}
+
+function validateMagicBytes(buffer: ArrayBuffer, ext: string): boolean {
+  const signatures = MAGIC_BYTES[ext]
+  if (!signatures) return true
+  const header = new Uint8Array(buffer.slice(0, 12))
+  return signatures.some(sig => sig.every((b, i) => b === header[i]))
+}
 
 export async function POST(request: Request) {
   const user = await getSession()
@@ -25,7 +42,7 @@ export async function POST(request: Request) {
     }
 
     if (file.size > MAX_SIZE) {
-      return NextResponse.json({ error: 'El archivo supera el límite de 20 MB' }, { status: 400 })
+      return NextResponse.json({ error: 'El archivo supera el límite de 50 MB' }, { status: 400 })
     }
 
     const ext = path.extname(file.name).toLowerCase()
@@ -38,6 +55,13 @@ export async function POST(request: Request) {
     }
 
     const bytes = await file.arrayBuffer()
+
+    if (!validateMagicBytes(bytes, ext)) {
+      return NextResponse.json({
+        error: 'El contenido del archivo no coincide con su extensión. Archivo rechazado.',
+      }, { status: 400 })
+    }
+
     const buffer = Buffer.from(bytes)
 
     const name = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`

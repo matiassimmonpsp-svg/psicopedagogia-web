@@ -43,11 +43,23 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       data: { downloadsCount: { increment: 1 } },
     }).catch(() => {})
 
+    const ext = path.extname(filepath).toLowerCase()
+    const mimeMap: Record<string, string> = {
+      '.pdf': 'application/pdf',
+      '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.webp': 'image/webp',
+    }
+    const contentType = mimeMap[ext] || 'application/octet-stream'
+    const safeName = resource.title.replace(/[^a-z0-9]+/gi, '-')
     const fileBuffer = fs.readFileSync(filepath)
     return new NextResponse(fileBuffer, {
       headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${resource.title.replace(/[^a-z0-9]+/gi, '-')}.pdf"`,
+        'Content-Type': contentType,
+        'Content-Disposition': `attachment; filename="${safeName}${ext}"`,
         'Content-Length': fileBuffer.length.toString(),
       },
     })
