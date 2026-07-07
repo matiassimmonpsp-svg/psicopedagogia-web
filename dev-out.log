@@ -1,0 +1,21 @@
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3002
+  - Environments: .env
+
+ ✓ Starting...
+ ✓ Ready in 4s
+ ○ Compiling / ...
+ ✓ Compiled / in 2.5s (586 modules)
+ GET / 200 in 2838ms
+ ✓ Compiled in 357ms (295 modules)
+ GET / 200 in 80ms
+ GET / 200 in 82ms
+ ○ Compiling /api/catalog ...
+ ✓ Compiled /api/catalog in 744ms (322 modules)
+ ✓ Compiled (415 modules)
+ GET /api/instagram 200 in 1736ms
+ GET /api/auth/me 200 in 1795ms
+ GET /api/instagram 200 in 11ms
+ GET /api/auth/me 200 in 16ms
+ GET /api/catalog 200 in 1825ms
+ GET /api/catalog 200 in 17ms

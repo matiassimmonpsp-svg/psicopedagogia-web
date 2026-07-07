@@ -1,0 +1,165 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  role         String    @default("user")
+  avatarUrl    String?   @map("avatar_url")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  orders       Order[]
+  downloads    Download[]
+
+  @@map("users")
+}
+
+model Course {
+  id        Int        @id @default(autoincrement())
+  name      String
+  slug      String     @unique
+  sortOrder Int        @default(0) @map("sort_order")
+  isActive  Boolean    @default(true) @map("is_active")
+  resources Resource[]
+
+  @@map("courses")
+}
+
+model Area {
+  id        Int        @id @default(autoincrement())
+  name      String
+  slug      String     @unique
+  sortOrder Int        @default(0) @map("sort_order")
+  subareas  Subarea[]
+  resources Resource[]
+
+  @@map("areas")
+}
+
+model Subarea {
+  id        Int        @id @default(autoincrement())
+  areaId    Int        @map("area_id")
+  name      String
+  slug      String
+  area      Area       @relation(fields: [areaId], references: [id])
+  resources Resource[]
+
+  @@unique([areaId, slug])
+  @@map("subareas")
+}
+
+model Resource {
+  id             String         @id @default(cuid())
+  title          String
+  description    String
+  filePath       String         @map("file_path")
+  previewPath    String         @map("preview_path")
+  resourceType   String         @default("evaluation") @map("resource_type")
+  isFree         Boolean        @default(false) @map("is_free")
+  priceClp       Int?           @map("price_clp")
+  promoFreeUntil DateTime?      @map("promo_free_until")
+  courseId       Int            @map("course_id")
+  areaId         Int            @map("area_id")
+  subareaId      Int?           @map("subarea_id")
+  downloadsCount Int            @default(0) @map("downloads_count")
+  isActive       Boolean        @default(true) @map("is_active")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+  course         Course         @relation(fields: [courseId], references: [id])
+  area           Area           @relation(fields: [areaId], references: [id])
+  subarea        Subarea?       @relation(fields: [subareaId], references: [id])
+  tags           ResourceTag[]
+  orderItems     OrderItem[]
+  downloads      Download[]
+
+  @@map("resources")
+}
+
+model Tag {
+  id        Int           @id @default(autoincrement())
+  name      String        @unique
+  slug      String        @unique
+  resources ResourceTag[]
+
+  @@map("tags")
+}
+
+model ResourceTag {
+  resourceId String   @map("resource_id")
+  tagId      Int      @map("tag_id")
+  resource   Resource @relation(fields: [resourceId], references: [id])
+  tag        Tag      @relation(fields: [tagId], references: [id])
+
+  @@id([resourceId, tagId])
+  @@map("resource_tags")
+}
+
+model Order {
+  id            String       @id @default(cuid())
+  userId        String       @map("user_id")
+  totalClp      Int          @map("total_clp")
+  status        String       @default("pending")
+  paymentMethod String?      @map("payment_method")
+  paymentId     String?      @map("payment_id")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  user          User         @relation(fields: [userId], references: [id])
+  items         OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id         Int      @id @default(autoincrement())
+  orderId    String   @map("order_id")
+  resourceId String   @map("resource_id")
+  priceClp   Int      @map("price_clp")
+  order      Order    @relation(fields: [orderId], references: [id])
+  resource   Resource @relation(fields: [resourceId], references: [id])
+
+  @@map("order_items")
+}
+
+model Download {
+  id           Int      @id @default(autoincrement())
+  userId       String   @map("user_id")
+  resourceId   String   @map("resource_id")
+  downloadedAt DateTime @default(now()) @map("downloaded_at")
+  ipAddress    String?  @map("ip_address")
+  user         User     @relation(fields: [userId], references: [id])
+  resource     Resource @relation(fields: [resourceId], references: [id])
+
+  @@map("downloads")
+}
+
+model DiscountCode {
+  id          Int       @id @default(autoincrement())
+  code        String    @unique
+  discountPercent Int       @map("discount_percent")
+  isActive    Boolean   @default(true) @map("is_active")
+  maxUses     Int?      @map("max_uses")
+  usedCount   Int       @default(0) @map("used_count")
+  expiresAt   DateTime? @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("discount_codes")
+}
+
+model SocialPost {
+  id              Int      @id @default(autoincrement())
+  instagramPostId String   @unique @map("instagram_post_id")
+  mediaUrl        String   @map("media_url")
+  caption         String
+  permalink       String
+  postedAt        DateTime @map("posted_at")
+  syncedAt        DateTime @default(now()) @map("synced_at")
+
+  @@map("social_posts")
+}
