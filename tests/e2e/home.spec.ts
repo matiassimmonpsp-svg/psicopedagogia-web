@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 test.describe('Página principal', () => {
   test('muestra el título', async ({ page }) => {
     await page.goto('/')
-    await expect(page.locator('h1')).toContainText('Recursos psicopedagógicos')
+    await expect(page.locator('h1')).toContainText('Material de evaluación psicopedagógica')
   })
 
   test('tiene enlace a catálogo', async ({ page }) => {
@@ -30,7 +30,7 @@ test.describe('Catálogo', () => {
 test.describe('Navegación', () => {
   test('login existe', async ({ page }) => {
     await page.goto('/login')
-    await expect(page.locator('h1, h2').first()).toContainText(/inicias? sesión|login|ingresar/i)
+    await expect(page.locator('h1, h2').first()).toContainText('Iniciar Sesión')
   })
 
   test('registro existe', async ({ page }) => {
