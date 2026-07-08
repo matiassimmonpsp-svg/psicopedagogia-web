@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, FileText, Users, ShoppingCart, Instagram, PlusCircle, Percent, ChevronLeft, ChevronRight } from 'lucide-react'
+import { LayoutDashboard, FileText, PlusCircle, Percent, Users, ChevronLeft, ChevronRight } from 'lucide-react'
 
 const links = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
@@ -11,8 +11,6 @@ const links = [
   { href: '/admin/recursos', label: 'Recursos', icon: FileText },
   { href: '/admin/descuentos', label: 'Descuentos', icon: Percent },
   { href: '/admin/usuarios', label: 'Usuarios', icon: Users },
-  { href: '/admin', label: 'Órdenes', icon: ShoppingCart },
-  { href: '/admin', label: 'Redes Sociales', icon: Instagram },
 ]
 
 export function AdminSidebar() {

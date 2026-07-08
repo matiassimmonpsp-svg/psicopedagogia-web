@@ -7,12 +7,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================================
+// Modelo: Usuario
+// ============================================================
 model User {
   id           String    @id @default(cuid())
   name         String
   email        String    @unique
   passwordHash String    @map("password_hash")
-  role         String    @default("user")
+  role         String    @default("user")     // "user" | "admin"
   avatarUrl    String?   @map("avatar_url")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
@@ -22,6 +25,9 @@ model User {
   @@map("users")
 }
 
+// ============================================================
+// Modelo: Curso (ej: "1° Básico", "Prekínder")
+// ============================================================
 model Course {
   id        Int        @id @default(autoincrement())
   name      String
@@ -33,22 +39,31 @@ model Course {
   @@map("courses")
 }
 
+// ============================================================
+// Modelo: Área (ej: "Lenguaje", "Matemáticas")
+// ============================================================
 model Area {
   id        Int        @id @default(autoincrement())
   name      String
   slug      String     @unique
   sortOrder Int        @default(0) @map("sort_order")
-  subareas  Subarea[]
+  isActive  Boolean    @default(true) @map("is_active")
   resources Resource[]
+  subareas  Subarea[]
 
   @@map("areas")
 }
 
+// ============================================================
+// Modelo: Subárea (ej: "Conciencia Fonológica")
+// ============================================================
 model Subarea {
   id        Int        @id @default(autoincrement())
-  areaId    Int        @map("area_id")
   name      String
   slug      String
+  areaId    Int        @map("area_id")
+  sortOrder Int        @default(0) @map("sort_order")
+  isActive  Boolean    @default(true) @map("is_active")
   area      Area       @relation(fields: [areaId], references: [id])
   resources Resource[]
 
@@ -56,17 +71,20 @@ model Subarea {
   @@map("subareas")
 }
 
+// ============================================================
+// Modelo: Recurso educativo
+// ============================================================
 model Resource {
   id             String         @id @default(cuid())
   title          String
   description    String
-  filePath       String         @map("file_path")
-  editablePath   String?        @map("editable_path")
-  previewPath    String         @map("preview_path")
-  resourceType   String         @default("evaluation") @map("resource_type")
+  filePath       String         @map("file_path")         // Ruta del PDF
+  editablePath   String?        @map("editable_path")      // Ruta del .docx/.pptx
+  previewPath    String         @map("preview_path")       // Ruta de la imagen de portada
+  resourceType   String         @default("evaluation") @map("resource_type")  // "evaluation" | "educational"
   isFree         Boolean        @default(false) @map("is_free")
-  priceClp       Int?           @map("price_clp")
-  promoFreeUntil DateTime?      @map("promo_free_until")
+  priceClp       Int?           @map("price_clp")          // Precio en CLP (null si es gratis)
+  promoFreeUntil DateTime?      @map("promo_free_until")   // Promo "gratis hasta" — 1 descarga por usuario
   courseId       Int            @map("course_id")
   areaId         Int            @map("area_id")
   subareaId      Int?           @map("subarea_id")
@@ -84,6 +102,9 @@ model Resource {
   @@map("resources")
 }
 
+// ============================================================
+// Modelo: Tag / Etiqueta
+// ============================================================
 model Tag {
   id        Int           @id @default(autoincrement())
   name      String        @unique
@@ -93,6 +114,9 @@ model Tag {
   @@map("tags")
 }
 
+// ============================================================
+// Modelo: Relación muchos-a-muchos entre Resource y Tag
+// ============================================================
 model ResourceTag {
   resourceId String   @map("resource_id")
   tagId      Int      @map("tag_id")
@@ -103,11 +127,15 @@ model ResourceTag {
   @@map("resource_tags")
 }
 
+// ============================================================
+// Modelo: Orden / Pedido
+// status: "cart" | "completed"
+// ============================================================
 model Order {
   id            String       @id @default(cuid())
   userId        String       @map("user_id")
   totalClp      Int          @map("total_clp")
-  status        String       @default("pending")
+  status        String       @default("pending")     // "cart" | "completed"
   paymentMethod String?      @map("payment_method")
   paymentId     String?      @map("payment_id")
   createdAt     DateTime     @default(now()) @map("created_at")
@@ -117,6 +145,10 @@ model Order {
   @@map("orders")
 }
 
+// ============================================================
+// Modelo: Item dentro de una orden
+// onDelete: Cascade — al borrar la orden se borran sus items
+// ============================================================
 model OrderItem {
   id         Int      @id @default(autoincrement())
   orderId    String   @map("order_id")
@@ -128,6 +160,9 @@ model OrderItem {
   @@map("order_items")
 }
 
+// ============================================================
+// Modelo: Registro de descarga
+// ============================================================
 model Download {
   id           Int      @id @default(autoincrement())
   userId       String   @map("user_id")
@@ -140,27 +175,32 @@ model Download {
   @@map("downloads")
 }
 
+// ============================================================
+// Modelo: Código de descuento
+// ============================================================
 model DiscountCode {
   id          Int       @id @default(autoincrement())
   code        String    @unique
-  discountPercent Int       @map("discount_percent")
-  isActive    Boolean   @default(true) @map("is_active")
+  discountPct Int       @map("discount_pct")
   maxUses     Int?      @map("max_uses")
   usedCount   Int       @default(0) @map("used_count")
   expiresAt   DateTime? @map("expires_at")
+  isActive    Boolean   @default(true) @map("is_active")
   createdAt   DateTime  @default(now()) @map("created_at")
 
   @@map("discount_codes")
 }
 
+// ============================================================
+// Modelo: Post de Instagram (mock / real)
+// ============================================================
 model SocialPost {
   id              Int      @id @default(autoincrement())
-  instagramPostId String   @unique @map("instagram_post_id")
+  instagramPostId String   @map("instagram_post_id")
   mediaUrl        String   @map("media_url")
-  caption         String
-  permalink       String
-  postedAt        DateTime @map("posted_at")
-  syncedAt        DateTime @default(now()) @map("synced_at")
+  caption         String?
+  permalink       String?
+  postedAt        DateTime @default(now()) @map("posted_at")
 
   @@map("social_posts")
 }

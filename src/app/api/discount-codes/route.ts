@@ -3,76 +3,78 @@ import { requireAdmin } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { csrfCheck } from '@/lib/csrf'
 
+/** GET /api/discount-codes — Lista todos los códigos de descuento */
 export async function GET() {
-  try {
-    const codes = await prisma.discountCode.findMany({ orderBy: { createdAt: 'desc' } })
-    return NextResponse.json({ codes })
-  } catch {
-    return NextResponse.json({ error: 'Error al obtener códigos' }, { status: 500 })
-  }
+  const admin = await requireAdmin()
+  if (!admin) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const codes = await prisma.discountCode.findMany({ orderBy: { createdAt: 'desc' } })
+  return NextResponse.json({ codes })
 }
 
+/** POST /api/discount-codes — Crea o verifica un código de descuento */
 export async function POST(request: NextRequest) {
-  const csrf = csrfCheck(request)
-  if (csrf) return csrf
-
   try {
     const body = await request.json()
-    const { action } = body
 
-    if (action === 'verify') {
+    /* Verificar código (público) */
+    if (body.action === 'verify') {
       const { code, cartTotal } = body
       if (!code) {
-        return NextResponse.json({ error: 'Código requerido' }, { status: 400 })
+        return NextResponse.json({ error: 'Ingresa un código' }, { status: 400 })
       }
 
-      const discount = await prisma.discountCode.findUnique({ where: { code: code.toUpperCase() } })
-      if (!discount) {
+      const found = await prisma.discountCode.findUnique({ where: { code: code.toUpperCase() } })
+      if (!found) {
         return NextResponse.json({ error: 'Código no válido' }, { status: 404 })
       }
-      if (!discount.isActive) {
+      if (!found.isActive) {
         return NextResponse.json({ error: 'Este código ya no está activo' }, { status: 400 })
       }
-      if (discount.maxUses && discount.usedCount >= discount.maxUses) {
-        return NextResponse.json({ error: 'Este código ha alcanzado su límite de usos' }, { status: 400 })
+      if (found.maxUses && found.usedCount >= found.maxUses) {
+        return NextResponse.json({ error: 'Este código ya alcanzó su límite de usos' }, { status: 400 })
       }
-      if (discount.expiresAt && new Date(discount.expiresAt) < new Date()) {
+      if (found.expiresAt && new Date(found.expiresAt) < new Date()) {
         return NextResponse.json({ error: 'Este código ha expirado' }, { status: 400 })
       }
 
-      const discountAmount = cartTotal ? Math.round(cartTotal * discount.discountPercent / 100) : 0
+      const discountPercent = found.discountPct
+      const discount = Math.round((cartTotal || 0) * discountPercent / 100)
 
       return NextResponse.json({
-        valid: true,
-        discount: discountAmount,
-        discountPercent: discount.discountPercent,
-        code: discount.code,
+        code: found.code,
+        discount,
+        discountPercent,
       })
     }
 
-    const user = await requireAdmin()
-    if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    /* Crear código (solo admin) */
+    const csrf = csrfCheck(request)
+    if (csrf) return csrf
+    const admin = await requireAdmin()
+    if (!admin) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-    const { code, discountPercent, maxUses, expiresAt } = body
-    if (!code || discountPercent == null) {
-      return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 })
+    const { code, discountPercent, discountPct, maxUses, expiresAt } = body
+    const pct = discountPercent ?? discountPct
+
+    if (!code || !pct) {
+      return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 })
     }
 
-    const created = await prisma.discountCode.create({
+    const existente = await prisma.discountCode.findUnique({ where: { code } })
+    if (existente) return NextResponse.json({ error: 'El código ya existe' }, { status: 409 })
+
+    const nuevo = await prisma.discountCode.create({
       data: {
         code: code.toUpperCase(),
-        discountPercent: Number(discountPercent),
-        maxUses: maxUses ? Number(maxUses) : null,
+        discountPct: parseInt(pct),
+        maxUses: maxUses ? parseInt(maxUses) : null,
         expiresAt: expiresAt ? new Date(expiresAt) : null,
       },
     })
 
-    return NextResponse.json({ code: created }, { status: 201 })
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error'
-    if (message.includes('Unique constraint')) {
-      return NextResponse.json({ error: 'El código ya existe' }, { status: 409 })
-    }
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ code: nuevo }, { status: 201 })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }

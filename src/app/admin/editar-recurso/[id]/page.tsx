@@ -1,9 +1,5 @@
-'use client'
-
-import { useParams } from 'next/navigation'
 import ResourceForm from '@/components/ResourceForm'
 
-export default function EditResourcePage() {
-  const params = useParams()
-  return <ResourceForm mode="edit" resourceId={params.id as string} />
+export default function EditResourcePage({ params }: { params: { id: string } }) {
+  return <ResourceForm mode="edit" resourceId={params.id} />
 }

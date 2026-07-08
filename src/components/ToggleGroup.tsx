@@ -1,47 +1,50 @@
 'use client'
 
-import { Check } from 'lucide-react'
+import type { ReactNode } from 'react'
 
-interface ToggleOption {
+interface Opcion {
   value: string
   label: string
-  icon: React.ReactNode
-  activeBg: string
-  activeText: string
-  activeBorder: string
-  iconBg: string
-  iconColor: string
+  icon?: ReactNode
+  activeBg?: string
+  activeText?: string
+  activeBorder?: string
+  iconBg?: string
+  iconColor?: string
 }
 
-interface ToggleGroupProps {
-  options: ToggleOption[]
+interface Props {
+  options: Opcion[]
   value: string
   onChange: (value: string) => void
 }
 
-export default function ToggleGroup({ options, value, onChange }: ToggleGroupProps) {
+/** Grupo de botones tipo toggle pill. Soporta iconos y colores custom. */
+export default function ToggleGroup({ options, value, onChange }: Props) {
   return (
-    <div className="flex gap-3">
-      {options.map(opt => {
-        const isActive = value === opt.value
+    <div className="flex flex-wrap gap-2">
+      {options.map(op => {
+        const activo = value === op.value
         return (
           <button
-            key={opt.value}
+            key={op.value}
             type="button"
-            onClick={() => onChange(opt.value)}
-            className={`flex-1 inline-flex items-center justify-center gap-2.5 px-4 py-3 rounded-2xl border-2 transition-all duration-200 text-sm font-semibold ${
-              isActive
-                ? `${opt.activeBorder} ${opt.activeBg} ${opt.activeText} shadow-sm`
-                : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:shadow-sm'
+            onClick={() => onChange(op.value)}
+            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all ${
+              activo
+                ? `${op.activeBg || 'bg-primary-50'} ${op.activeText || 'text-primary-700'} ${op.activeBorder || 'border-primary-500'} shadow-sm`
+                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
             }`}
           >
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
-              isActive ? opt.iconBg : 'bg-gray-100'
-            }`}>
-              <span className={isActive ? opt.iconColor : 'text-gray-500'}>{opt.icon}</span>
-            </div>
-            <span>{opt.label}</span>
-            {isActive && <Check size={16} />}
+            {op.icon && (
+              <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${
+                activo ? op.iconBg || 'bg-primary-200' : 'bg-gray-100'
+              } ${activo ? op.iconColor || 'text-primary-700' : 'text-gray-500'}`}
+              >
+                {op.icon}
+              </span>
+            )}
+            {op.label}
           </button>
         )
       })}

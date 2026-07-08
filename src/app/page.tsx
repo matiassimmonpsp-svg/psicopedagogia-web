@@ -1,6 +1,8 @@
 'use client'
 
 import Link from 'next/link'
+import { useState } from 'react'
+import toast from 'react-hot-toast'
 import { ArrowRight, BookOpen, Brain, Search, Shield } from 'lucide-react'
 import { ResourceCard } from '@/components/ResourceCard'
 import { SearchBar } from '@/components/SearchBar'
@@ -10,9 +12,10 @@ import { useCatalog } from '@/lib/hooks'
 
 export default function Home() {
   const { resources, loading, refresh } = useCatalog()
+  const [email, setEmail] = useState('')
 
-  const featuredResources = resources.filter(r => r.isFree).slice(0, 4)
-  const premiumResources = resources.filter(r => !r.isFree).slice(0, 4)
+  const featuredResources = resources.filter((r: any) => r.isFree).slice(0, 4)
+  const premiumResources = resources.filter((r: any) => !r.isFree).slice(0, 4)
 
   return (
     <>
@@ -101,7 +104,7 @@ export default function Home() {
                 <Link href="/buscar?gratis=true" className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">Ver todos <ArrowRight size={14} /></Link>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-                {featuredResources.map(r => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
+                {featuredResources.map((r: any) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
               </div>
             </section>
           )}
@@ -114,7 +117,7 @@ export default function Home() {
                   <Link href="/buscar?premium=true" className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">Ver todos <ArrowRight size={14} /></Link>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {premiumResources.map(r => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
+                  {premiumResources.map((r: any) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
                 </div>
               </div>
             </section>
@@ -130,8 +133,8 @@ export default function Home() {
         <div className="max-w-2xl mx-auto px-4 text-center">
           <h2 className="text-2xl font-bold text-white mb-2">Recibe material gratis cada mes</h2>
           <p className="text-primary-100 mb-6">Suscríbete a nuestro newsletter y recibe instrumentos de evaluación gratuitos directamente en tu correo.</p>
-          <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto" onSubmit={e => e.preventDefault()}>
-            <input type="email" placeholder="tu@correo.com" className="input-field flex-1" />
+          <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto" onSubmit={e => { e.preventDefault(); if (email) { toast.success('¡Gracias por suscribirte! Pronto recibirás material en tu correo.'); setEmail('') } }}>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@correo.com" className="input-field flex-1" required />
             <button type="submit" className="bg-white text-primary-700 font-semibold px-6 py-2.5 rounded-lg hover:bg-primary-50 transition-colors">Suscribirme</button>
           </form>
         </div>

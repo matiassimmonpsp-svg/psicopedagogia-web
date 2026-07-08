@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import toast from 'react-hot-toast'
 import { Search, PlusCircle, X } from 'lucide-react'
 import Link from 'next/link'
 import { courses } from '@/lib/data'
@@ -20,7 +21,7 @@ export default function AdminResources() {
       if (!res.ok) throw new Error('Error al eliminar')
       refresh()
     } catch (err: any) {
-      alert(err.message)
+      toast.error(err.message)
     }
   }
 
@@ -34,7 +35,7 @@ export default function AdminResources() {
       if (!res.ok) throw new Error('Error')
       refresh()
     } catch {
-      alert('Error al cambiar estado')
+      toast.error('Error al cambiar estado')
     }
   }
 
@@ -42,13 +43,13 @@ export default function AdminResources() {
     let result = resources
     if (search.trim()) {
       const q = search.toLowerCase()
-      result = result.filter(r => r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q))
+      result = result.filter((r: any) => r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q))
     }
     if (courseFilter) {
-      result = result.filter(r => r.courseId === Number(courseFilter))
+      result = result.filter((r: any) => r.courseSlug === courseFilter)
     }
     if (typeFilter) {
-      result = result.filter(r => r.resourceType === typeFilter)
+      result = result.filter((r: any) => r.resourceType === typeFilter)
     }
     return result
   }, [resources, search, courseFilter, typeFilter])
@@ -84,7 +85,7 @@ export default function AdminResources() {
           </div>
           <select value={courseFilter} onChange={e => setCourseFilter(e.target.value)} className="input-field min-w-[140px]">
             <option value="">Todos los cursos</option>
-            {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            {courses.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}
           </select>
           <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="input-field min-w-[140px]">
             <option value="">Todos los tipos</option>

@@ -35,7 +35,9 @@ export interface Resource {
   downloadsCount: number
   isActive?: boolean
   courseName?: string
+  courseSlug?: string
   areaName?: string
+  areaSlug?: string
   subareaName?: string
   tags: string[]
 }
@@ -228,19 +230,6 @@ export const socialPosts: SocialPost[] = [
 // Helper functions
 export function getCourseBySlug(slug: string): Course | undefined {
   return courses.find(c => c.slug === slug)
-}
-
-export function getResourcesByCourse(courseSlug: string): Resource[] {
-  const course = getCourseBySlug(courseSlug)
-  if (!course) return []
-  return allResources.filter(r => r.courseId === course.id && r.isActive !== false)
-}
-
-export function getResourcesByCourseAndArea(courseSlug: string, areaSlug: string): Resource[] {
-  const course = getCourseBySlug(courseSlug)
-  const area = areas.find(a => a.slug === areaSlug)
-  if (!course || !area) return []
-  return allResources.filter(r => r.courseId === course.id && r.areaId === area.id && r.isActive !== false)
 }
 
 export function searchResources(query: string): { results: Resource[]; suggestions: Resource[] } {

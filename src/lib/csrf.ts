@@ -1,55 +1,39 @@
 import { NextRequest } from 'next/server'
 
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean)
+const ORIGENES_PERMITIDOS = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean)
 
-function getOrigin(request: NextRequest): string | null {
-  return request.headers.get('origin')
+/** Compara dos orígenes ignorando trailing slash y mayúsculas */
+function mismoOrigen(permitido: string, actual: string): boolean {
+  if (!permitido || !actual) return false
+  return permitido.replace(/\/+$/, '').toLowerCase() === actual.replace(/\/+$/, '').toLowerCase()
 }
 
-function getReferer(request: NextRequest): string | null {
-  return request.headers.get('referer')
-}
-
-function matchOrigin(allowed: string, actual: string): boolean {
-  if (!allowed || !actual) return false
-  const a = allowed.replace(/\/+$/, '').toLowerCase()
-  const b = actual.replace(/\/+$/, '').toLowerCase()
-  return a === b
-}
-
+/**
+ * Protección CSRF: verifica que Origin/Referer coincida con el host.
+ * Se salta GET y HEAD. Devuelve una Response 403 si no pasa.
+ */
 export function csrfCheck(request: NextRequest): Response | null {
   if (request.method === 'GET' || request.method === 'HEAD') return null
 
-  const origin = getOrigin(request)
-  const referer = getReferer(request)
-  const originOrReferer = origin || (referer ? new URL(referer).origin : null)
+  const origin = request.headers.get('origin')
+  const referer = request.headers.get('referer')
+  const origenReal = origin || (referer ? new URL(referer).origin : null)
 
-  if (!originOrReferer) {
-    return new Response(JSON.stringify({ error: 'Forbidden' }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-    })
+  if (!origenReal) {
+    return Response.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  if (ALLOWED_ORIGINS.length > 0) {
-    const allowed = ALLOWED_ORIGINS.some(o => matchOrigin(o, originOrReferer))
-    if (!allowed) {
-      return new Response(JSON.stringify({ error: 'Forbidden' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' },
-      })
+  if (ORIGENES_PERMITIDOS.length > 0) {
+    if (!ORIGENES_PERMITIDOS.some(o => mismoOrigen(o, origenReal))) {
+      return Response.json({ error: 'Forbidden' }, { status: 403 })
     }
     return null
   }
 
   const host = request.headers.get('host') || ''
-  const expectedOrigin = `${request.nextUrl.protocol}//${host}`
-
-  if (!matchOrigin(expectedOrigin, originOrReferer)) {
-    return new Response(JSON.stringify({ error: 'Forbidden' }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-    })
+  const origenEsperado = `${request.nextUrl.protocol}//${host}`
+  if (!mismoOrigen(origenEsperado, origenReal)) {
+    return Response.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   return null

@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import toast from 'react-hot-toast'
 import { ArrowLeft, Download, BookOpen, Lock, ShoppingCart, Clock, Loader2, Shield, Check, Sparkles, Edit3 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useCart } from '@/context/CartContext'
-import { formatClp, hasActivePromo } from '@/lib/utils'
+import { formatClp, hasActivePromo, downloadFile } from '@/lib/utils'
 
 export default function ResourceDetail() {
   const params = useParams()
@@ -54,32 +55,26 @@ export default function ResourceDetail() {
     setDownloading(true)
     try {
       const url = type ? `/api/download/${resource.id}?type=${type}` : `/api/download/${resource.id}`
-      const res = await fetch(url)
-      if (res.status === 401) { router.push('/login'); return }
-      if (res.status === 403) { alert('Debes comprar este recurso para descargarlo'); return }
-      if (!res.ok) { const err = await res.json(); alert(err.error || 'Error al descargar'); return }
-      const blob = await res.blob()
-      const blobUrl = URL.createObjectURL(blob)
       const ext = type === 'editable' && editablePath ? '.' + editablePath.split('.').pop() : '.pdf'
-      const a = document.createElement('a')
-      a.href = blobUrl
-      a.download = `${title.replace(/[^a-z0-9]+/gi, '-')}${ext}`
-      document.body.appendChild(a); a.click(); document.body.removeChild(a)
-      URL.revokeObjectURL(blobUrl)
-    } catch { alert('Error de conexión al descargar') }
-    finally { setDownloading(false) }
+      await downloadFile(url, `${title.replace(/[^a-z0-9]+/gi, '-')}${ext}`)
+    } catch (err: any) {
+      if (err.message?.includes('Debes comprar')) { toast.error(err.message); return }
+      if (err.message) { toast.error(err.message); return }
+      toast.error('Error de conexión al descargar')
+    } finally { setDownloading(false) }
   }
 
   const editableExt = editablePath ? editablePath.split('.').pop()?.toUpperCase() : null
 
-  function handleAddToCart() {
+  async function handleAddToCart() {
     if (!user) { router.push('/login'); return }
-    addItem({
+    const err = await addItem({
       id: resource.id,
       title: resource.title,
       priceClp: price,
       courseName: resource.course?.name || '',
     })
+    if (err) { toast.error(err); return }
     setAddedToCart(true)
   }
 

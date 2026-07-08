@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import toast from 'react-hot-toast'
 import { Upload, Save, FileText, Image, Check, DollarSign, BookOpen, Type, AlignLeft, ArrowLeft, ArrowRight, Eye, Layers, Paperclip, CreditCard, School, X, Sparkles, Tag, Gem, Edit3, Download, AlertTriangle } from 'lucide-react'
 import { courses, areas, subareas } from '@/lib/data'
 import { TagInput } from '@/components/TagInput'
@@ -85,7 +86,7 @@ export default function ResourceForm({ mode, resourceId }: ResourceFormProps) {
         setExistingPreviewPath(r.previewPath || '/previews/placeholder.svg')
         setPreviewUrl(r.previewPath || '')
       } catch (err: any) {
-        alert(err.message)
+        toast.error(err.message)
         router.push('/admin')
       } finally {
         setFetching(false)
@@ -154,7 +155,7 @@ export default function ResourceForm({ mode, resourceId }: ResourceFormProps) {
 
       if (isEdit) {
         if (!uploadedPdfUrl) {
-          alert('Debes tener un archivo PDF')
+          toast.error('Debes tener un archivo PDF')
           setLoading(false)
           return
         }
@@ -177,12 +178,12 @@ export default function ResourceForm({ mode, resourceId }: ResourceFormProps) {
         setTimeout(() => router.push('/admin'), 1500)
       } else {
         if (!uploadedPdfUrl) {
-          alert('Debes seleccionar un archivo PDF')
+          toast.error('Debes seleccionar un archivo PDF')
           setLoading(false)
           return
         }
         if (!uploadedPreviewUrl) {
-          alert('Debes seleccionar una imagen de portada')
+          toast.error('Debes seleccionar una imagen de portada')
           setLoading(false)
           return
         }
@@ -208,7 +209,7 @@ export default function ResourceForm({ mode, resourceId }: ResourceFormProps) {
         }, 1500)
       }
     } catch (err: any) {
-      alert(err.message)
+      toast.error(err.message)
     } finally {
       setLoading(false)
     }

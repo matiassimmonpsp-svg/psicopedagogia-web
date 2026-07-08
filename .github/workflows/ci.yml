@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      sqlite:
+        image: nouchka/sqlite3:latest
+        options: >-
+          --entrypoint sh
+          -c "touch /tmp/test.db && tail -f /dev/null"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma db push
+        env:
+          DATABASE_URL: file:./prisma/test.db
+      - run: npx tsx prisma/seed.ts
+        env:
+          DATABASE_URL: file:./prisma/test.db
+      - run: npm run build
+      - run: npm test
+        env:
+          DATABASE_URL: file:./prisma/test.db
+      - name: Run API tests
+        run: node tests/run-api-tests.mjs
+        env:
+          DATABASE_URL: file:./prisma/test.db
+      - name: Install Playwright
+        run: npx playwright install chromium
+      - run: npm run test:e2e
+        env:
+          DATABASE_URL: file:./prisma/test.db

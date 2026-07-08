@@ -1,12 +1,15 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, FormEvent } from 'react'
+import { useState, FormEvent, Suspense } from 'react'
 import { BookOpen } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
+import { useRouter, useSearchParams } from 'next/navigation'
 
-export default function LoginPage() {
+function LoginForm() {
   const { login } = useAuth()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -22,7 +25,8 @@ export default function LoginPage() {
     setLoading(true)
     const err = await login(email, password)
     setLoading(false)
-    if (err) setError(err)
+    if (err) { setError(err); return }
+    router.push(searchParams.get('callbackUrl') || searchParams.get('redirect') || '/')
   }
 
   return (
@@ -52,5 +56,13 @@ export default function LoginPage() {
         </form>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   )
 }

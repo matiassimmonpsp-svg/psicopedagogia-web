@@ -3,46 +3,51 @@ import { requireAdmin } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { csrfCheck } from '@/lib/csrf'
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+/** GET /api/discount-codes/[id] — Obtiene un código por ID */
+export async function GET(_request: Request, { params }: { params: { id: string } }) {
+  const admin = await requireAdmin()
+  if (!admin) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const code = await prisma.discountCode.findUnique({ where: { id: parseInt(params.id) } })
+  if (!code) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
+
+  return NextResponse.json({ code })
+}
+
+/** PUT /api/discount-codes/[id] — Actualiza un código */
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   const csrf = csrfCheck(request)
   if (csrf) return csrf
+  const admin = await requireAdmin()
+  if (!admin) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   try {
-    const user = await requireAdmin()
-    if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-
     const body = await request.json()
-    const { code, discountPercent, maxUses, expiresAt, isActive } = body
-
     const data: any = {}
-    if (code) data.code = code.toUpperCase()
-    if (discountPercent != null) data.discountPercent = Number(discountPercent)
-    if (maxUses !== undefined) data.maxUses = maxUses ? Number(maxUses) : null
-    if (expiresAt !== undefined) data.expiresAt = expiresAt ? new Date(expiresAt) : null
-    if (isActive !== undefined) data.isActive = isActive
+    const pct = body.discountPercent ?? body.discountPct
+    if (pct !== undefined) data.discountPct = parseInt(pct)
+    if (body.maxUses !== undefined) data.maxUses = body.maxUses ? parseInt(body.maxUses) : null
+    if (body.expiresAt !== undefined) data.expiresAt = body.expiresAt ? new Date(body.expiresAt) : null
+    if (body.isActive !== undefined) data.isActive = body.isActive
 
-    const updated = await prisma.discountCode.update({
-      where: { id: Number(params.id) },
-      data,
-    })
-
-    return NextResponse.json({ code: updated })
-  } catch {
-    return NextResponse.json({ error: 'Error al actualizar código' }, { status: 500 })
+    const code = await prisma.discountCode.update({ where: { id: parseInt(params.id) }, data })
+    return NextResponse.json({ code })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
 
+/** DELETE /api/discount-codes/[id] — Elimina un código */
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   const csrf = csrfCheck(request)
   if (csrf) return csrf
+  const admin = await requireAdmin()
+  if (!admin) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   try {
-    const user = await requireAdmin()
-    if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-
-    await prisma.discountCode.delete({ where: { id: Number(params.id) } })
+    await prisma.discountCode.delete({ where: { id: parseInt(params.id) } })
     return NextResponse.json({ success: true })
-  } catch {
-    return NextResponse.json({ error: 'Error al eliminar código' }, { status: 500 })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }

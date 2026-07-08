@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import toast from 'react-hot-toast'
 import { Shield, ShieldOff, Trash2, Edit3, AlertCircle, X } from 'lucide-react'
 
 interface User {
@@ -52,7 +53,7 @@ export default function AdminUsuarios() {
   async function saveEdit() {
     if (!editingUser) return
     if (!editName.trim() || !editEmail.trim()) {
-      alert('Nombre y correo son obligatorios')
+      toast.error('Nombre y correo son obligatorios')
       return
     }
 
@@ -72,7 +73,7 @@ export default function AdminUsuarios() {
       closeEdit()
     } else {
       const data = await res.json()
-      alert(data.error)
+      toast.error(data.error)
     }
     setSaving(false)
   }
@@ -91,7 +92,7 @@ export default function AdminUsuarios() {
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u))
     } else {
       const data = await res.json()
-      alert(data.error)
+      toast.error(data.error)
     }
   }
 
@@ -218,7 +219,7 @@ export default function AdminUsuarios() {
                   <span className="text-gray-400 font-normal ml-1">(dejar vacío para no cambiar)</span>
                 </label>
                 <input
-                  type="text"
+                  type="password"
                   value={editPassword}
                   onChange={e => setEditPassword(e.target.value)}
                   className="input w-full"

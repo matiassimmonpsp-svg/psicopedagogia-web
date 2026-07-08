@@ -7,7 +7,7 @@ import type { CartItem } from '@/lib/types'
 interface CartContextType {
   items: CartItem[]
   loading: boolean
-  addItem: (item: CartItem) => Promise<void>
+  addItem: (item: CartItem) => Promise<string | null>  // null = éxito
   removeItem: (id: string) => Promise<void>
   clearCart: () => Promise<void>
   count: number
@@ -16,6 +16,11 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
+/**
+ * Proveedor del carrito de compras.
+ * Usuarios logueados: sincroniza con la BD (Order status='cart').
+ * Invitados: almacena en localStorage.
+ */
 export function CartProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   const [items, setItems] = useState<CartItem[]>([])
@@ -30,50 +35,58 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setLoading(false)
       return
     }
+    setLoading(true)
     try {
       const res = await fetch('/api/cart')
       if (res.ok) {
         const data = await res.json()
         setItems(data.items || [])
-      } else {
-        setItems([])
       }
-    } catch { setItems([]) }
+    } catch { console.error('Error al cargar carrito') }
     finally { setLoading(false) }
   }, [user])
 
   useEffect(() => { fetchCart() }, [fetchCart])
 
-  const saveLocalCart = useCallback((newItems: CartItem[]) => {
-    localStorage.setItem('cart', JSON.stringify(newItems))
-    setItems(newItems)
+  const guardarLocal = useCallback((items: CartItem[]) => {
+    localStorage.setItem('cart', JSON.stringify(items))
+    setItems(items)
   }, [])
 
-  const addItem = useCallback(async (item: CartItem) => {
+  const addItem = useCallback(async (item: CartItem): Promise<string | null> => {
     if (!user) {
       const cart = JSON.parse(localStorage.getItem('cart') || '[]')
       if (!cart.some((i: CartItem) => i.id === item.id)) {
         cart.push(item)
-        saveLocalCart(cart)
+        guardarLocal(cart)
       }
-      return
+      return null
     }
-    await fetch('/api/cart', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ resourceId: item.id, priceClp: item.priceClp, title: item.title, courseName: item.courseName }),
-    })
-    await fetchCart()
-  }, [user, fetchCart, saveLocalCart])
+    try {
+      const res = await fetch('/api/cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resourceId: item.id, priceClp: item.priceClp }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        return data.error || 'Error al agregar al carrito'
+      }
+      await fetchCart()
+      return null
+    } catch {
+      return 'Error de conexión'
+    }
+  }, [user, fetchCart, guardarLocal])
 
   const removeItem = useCallback(async (id: string) => {
     if (!user) {
-      saveLocalCart(items.filter(i => i.id !== id))
+      guardarLocal(items.filter(i => i.id !== id))
       return
     }
     await fetch(`/api/cart/${id}`, { method: 'DELETE' })
     await fetchCart()
-  }, [user, items, fetchCart, saveLocalCart])
+  }, [user, items, fetchCart, guardarLocal])
 
   const clearCart = useCallback(async () => {
     if (!user) {
@@ -81,8 +94,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setItems([])
       return
     }
-    const ids = items.map(i => i.id)
-    await Promise.all(ids.map(id => fetch(`/api/cart/${id}`, { method: 'DELETE' })))
+    await Promise.all(items.map(i => fetch(`/api/cart/${i.id}`, { method: 'DELETE' })))
     await fetchCart()
   }, [user, items, fetchCart])
 

@@ -1,11 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { csrfCheck } from '@/lib/csrf'
+import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 
-export async function POST(request: NextRequest) {
-  const csrf = csrfCheck(request)
-  if (csrf) return csrf
-
-  const response = NextResponse.json({ ok: true })
-  response.cookies.set('session', '', { maxAge: 0, path: '/' })
-  return response
+/** POST /api/auth/logout — Elimina la cookie de sesión */
+export async function POST() {
+  ;(await cookies()).delete('session')
+  return NextResponse.json({ success: true })
 }

@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 
+// Previene múltiples instancias de Prisma en desarrollo (hot-reload)
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 
 export const prisma = globalForPrisma.prisma || new PrismaClient()

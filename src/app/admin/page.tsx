@@ -1,5 +1,6 @@
 'use client'
 
+import toast from 'react-hot-toast'
 import { FileText, Users, ShoppingCart, Download } from 'lucide-react'
 import Link from 'next/link'
 import ResourceTable from '@/components/ResourceTable'
@@ -15,7 +16,7 @@ export default function AdminDashboard() {
       if (!res.ok) throw new Error('Error al eliminar')
       refresh()
     } catch (err: any) {
-      alert(err.message)
+      toast.error(err.message)
     }
   }
 
@@ -23,7 +24,7 @@ export default function AdminDashboard() {
     { label: 'Recursos totales', value: resources.length, icon: FileText, color: 'text-blue-600 bg-blue-100' },
     { label: 'Usuarios registrados', value: 156, icon: Users, color: 'text-green-600 bg-green-100' },
     { label: 'Órdenes completadas', value: 89, icon: ShoppingCart, color: 'text-purple-600 bg-purple-100' },
-    { label: 'Descargas totales', value: resources.reduce((s, r) => s + (r.downloadsCount || 0), 0), icon: Download, color: 'text-orange-600 bg-orange-100' },
+    { label: 'Descargas totales', value: resources.reduce((s: number, r: any) => s + (r.downloadsCount || 0), 0), icon: Download, color: 'text-orange-600 bg-orange-100' },
   ]
 
   return (

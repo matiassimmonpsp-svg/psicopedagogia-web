@@ -1,50 +1,61 @@
-import type { Resource } from './data'
-
-export function formatClp(amount: number): string {
-  return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(amount)
+/** Normaliza texto: minúsculas, sin tildes, sin caracteres especiales */
+export function normalizeText(t: string): string {
+  return t.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, '')
 }
 
-export function hasActivePromo(resource: Resource | null | undefined): boolean {
-  if (!resource?.promoFreeUntil) return false
+/** Expande una consulta de búsqueda en tokens individuales */
+export function expandSearchQuery(query: string): string[] {
+  return normalizeText(query).split(/\s+/).filter(Boolean)
+}
+
+/** Formatea un número como pesos chilenos (CLP) */
+export function formatClp(valor: number): string {
+  return `$${Math.round(valor).toLocaleString('es-CL')}`
+}
+
+/** Verifica si un recurso tiene una promoción activa */
+export function hasActivePromo(resource: { promoFreeUntil?: string | Date | null }): boolean {
+  if (!resource.promoFreeUntil) return false
   return new Date(resource.promoFreeUntil) > new Date()
 }
 
-export function getPromoEndDate(resource: Resource | null | undefined): Date | null {
-  if (!resource?.promoFreeUntil) return null
-  const d = new Date(resource.promoFreeUntil)
-  return d > new Date() ? d : null
+/** Devuelve la fecha de término de la promo, o null si ya expiró */
+export function getPromoEndDate(promoFreeUntil: string | Date | null): Date | null {
+  if (!promoFreeUntil) return null
+  const date = new Date(promoFreeUntil)
+  return date > new Date() ? date : null
 }
 
-export function normalizeText(s: string): string {
-  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+/** Descarga un archivo desde una URL y lo guarda con el nombre indicado */
+export async function downloadFile(url: string, filename: string): Promise<void> {
+  const res = await fetch(url)
+  if (res.status === 401) throw new Error('No autorizado')
+  if (res.status === 403) throw new Error('Debes comprar este recurso para descargarlo')
+  if (!res.ok) throw new Error(await res.json().then(d => d.error).catch(() => 'Error al descargar'))
+  const blob = await res.blob()
+  const blobUrl = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = blobUrl
+  a.download = filename
+  document.body.appendChild(a); a.click(); document.body.removeChild(a)
+  URL.revokeObjectURL(blobUrl)
 }
 
-const wordToNum: Record<string, string> = {
-  'pre-kinder': 'prekinder',
-  primero: '1°', segundo: '2°', tercero: '3°', cuarto: '4°',
-  quinto: '5°', sexto: '6°', septimo: '7°', octavo: '8°',
-}
-
-export function expandSearchQuery(q: string): string[] {
-  const seen = new Set<string>()
-  const results: string[] = [q]
-  const words = q.split(/\s+/)
-  for (const w of words) {
-    const mapped = wordToNum[w]
-    if (mapped) {
-      const alt = q.replace(w, mapped)
-      if (!seen.has(alt)) { seen.add(alt); results.push(alt) }
+/** Crea las relaciones ResourceTag para un recurso dado */
+export async function upsertTags(tags: string[], resourceId: string, prisma: any) {
+  for (const tagName of tags) {
+    const slug = tagName.toLowerCase().replace(/\s+/g, '-')
+    let tag = await prisma.tag.findUnique({ where: { slug } })
+    if (!tag) {
+      tag = await prisma.tag.create({ data: { name: tagName, slug } })
     }
-  }
-  return results
-}
-
-export async function upsertTags(tags: string, resourceId: string, prismaClient: typeof import('@/lib/prisma').prisma): Promise<void> {
-  const tagNames = String(tags).split(',').map((t: string) => t.trim().toLowerCase()).filter(Boolean)
-  for (const name of tagNames) {
-    const slug = name.replace(/\s+/g, '-')
-    let tag = await prismaClient.tag.findUnique({ where: { slug } })
-    if (!tag) tag = await prismaClient.tag.create({ data: { name, slug } })
-    await prismaClient.resourceTag.create({ data: { resourceId, tagId: tag.id } }).catch(() => {})
+    const exists = await prisma.resourceTag.findFirst({
+      where: { resourceId, tagId: tag.id }
+    })
+    if (!exists) {
+      await prisma.resourceTag.create({ data: { resourceId, tagId: tag.id } })
+    }
   }
 }

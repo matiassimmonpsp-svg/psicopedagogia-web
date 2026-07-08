@@ -10,17 +10,17 @@ import { useCatalog } from '@/lib/hooks'
 export default function CatalogoPage() {
   const { resources: allResources, loading, refresh } = useCatalog()
 
-  const [courseFilter, setCourseFilter] = useState<number | null>(null)
-  const [areaFilter, setAreaFilter] = useState<number | null>(null)
+  const [courseSlug, setCourseSlug] = useState<string | null>(null)
+  const [areaSlug, setAreaSlug] = useState<string | null>(null)
   const [typeFilter, setTypeFilter] = useState<string | null>(null)
   const [priceFilter, setPriceFilter] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
 
-  const hasFilters = courseFilter || areaFilter || typeFilter || priceFilter || searchQuery
+  const hasFilters = courseSlug || areaSlug || typeFilter || priceFilter || searchQuery
 
-  const results = allResources.filter(r => {
-    if (courseFilter && r.courseId !== courseFilter) return false
-    if (areaFilter && r.areaId !== areaFilter) return false
+  const results = allResources.filter((r: any) => {
+    if (courseSlug && r.courseSlug !== courseSlug) return false
+    if (areaSlug && r.areaSlug !== areaSlug) return false
     if (typeFilter && r.resourceType !== typeFilter) return false
     if (priceFilter === 'free' && !r.isFree) return false
     if (priceFilter === 'premium' && r.isFree) return false
@@ -29,21 +29,21 @@ export default function CatalogoPage() {
       const nTitle = normalizeText(r.title)
       const nDesc = normalizeText(r.description)
       const nCourse = normalizeText(r.courseName || '')
-      const nTags = r.tags.map(t => normalizeText(t))
-      if (!queries.some(q => nTitle.includes(q) || nDesc.includes(q) || nCourse.includes(q) || nTags.some(t => t.includes(q)))) return false
+      const nTags = (r.tags || []).map((t: string) => normalizeText(t))
+      if (!queries.some(q => nTitle.includes(q) || nDesc.includes(q) || nCourse.includes(q) || nTags.some((t: string) => t.includes(q)))) return false
     }
     return true
   })
 
   function clearFilters() {
-    setCourseFilter(null)
-    setAreaFilter(null)
+    setCourseSlug(null)
+    setAreaSlug(null)
     setTypeFilter(null)
     setPriceFilter(null)
     setSearchQuery('')
   }
 
-  const activeFilterCount = [courseFilter, areaFilter, typeFilter, priceFilter].filter(Boolean).length
+  const activeFilterCount = [courseSlug, areaSlug, typeFilter, priceFilter].filter(Boolean).length
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -73,10 +73,10 @@ export default function CatalogoPage() {
               <div className="space-y-1 max-h-48 overflow-y-auto">
                 {courses.map(c => (
                   <button
-                    key={c.id}
-                    onClick={() => setCourseFilter(courseFilter === c.id ? null : c.id)}
+                    key={c.slug}
+                    onClick={() => setCourseSlug(courseSlug === c.slug ? null : c.slug)}
                     className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                      courseFilter === c.id ? 'bg-primary-100 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-50'
+                      courseSlug === c.slug ? 'bg-primary-100 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-50'
                     }`}
                   >
                     {c.name}
@@ -90,10 +90,10 @@ export default function CatalogoPage() {
               <div className="space-y-1">
                 {areas.map(a => (
                   <button
-                    key={a.id}
-                    onClick={() => setAreaFilter(areaFilter === a.id ? null : a.id)}
+                    key={a.slug}
+                    onClick={() => setAreaSlug(areaSlug === a.slug ? null : a.slug)}
                     className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                      areaFilter === a.id ? 'bg-secondary-100 text-secondary-700 font-medium' : 'text-gray-600 hover:bg-gray-50'
+                      areaSlug === a.slug ? 'bg-secondary-100 text-secondary-700 font-medium' : 'text-gray-600 hover:bg-gray-50'
                     }`}
                   >
                     {a.name}
@@ -176,7 +176,7 @@ export default function CatalogoPage() {
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-6">
-              {results.map(r => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
+              {results.map((r: any) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
             </div>
           )}
         </div>

@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { csrfCheck } from '@/lib/csrf'
 
+/** POST /api/checkout — Convierte el carrito en una orden pagada */
 export async function POST(request: NextRequest) {
   try {
     const csrf = csrfCheck(request)
@@ -13,11 +14,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 })
     }
 
-    const body = await request.json()
-    console.log('CHECKOUT REQUEST - user:', user.id, 'items:', JSON.stringify(body.items))
-
-    const { items: rawItems, paymentMethod } = body
-    if (!rawItems || !Array.isArray(rawItems) || rawItems.length === 0) {
+    const { items: rawItems, paymentMethod, discountCode } = await request.json()
+    if (!rawItems?.length) {
       return NextResponse.json({ error: 'Carrito vacío' }, { status: 400 })
     }
 
@@ -25,23 +23,42 @@ export async function POST(request: NextRequest) {
 
     const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
     if (!dbUser) {
-      return NextResponse.json({ error: 'Tu sesión ya no es válida. Cierra sesión y vuelve a iniciarla.' }, { status: 401 })
+      return NextResponse.json({ error: 'Sesión inválida. Vuelve a iniciar sesión.' }, { status: 401 })
     }
 
     const ids = items.map(i => i.id)
-    const existingResources = await prisma.resource.findMany({
-      where: { id: { in: ids } },
-      select: { id: true, title: true },
-    })
-    const existingIds = new Set(existingResources.map(r => r.id))
-    const missingIds = ids.filter(id => !existingIds.has(id))
-    if (missingIds.length > 0) {
+    const existentes = await prisma.resource.findMany({ where: { id: { in: ids } }, select: { id: true, priceClp: true } })
+    const faltantes = ids.filter(id => !existentes.some(r => r.id === id))
+    if (faltantes.length) {
       return NextResponse.json({
-        error: `Los siguientes recursos ya no existen: ${missingIds.join(', ')}. Limpia tu carrito e inténtalo de nuevo.`,
+        error: `Recursos ya no disponibles: ${faltantes.join(', ')}. Limpia tu carrito.`,
       }, { status: 400 })
     }
 
-    const totalClp = items.reduce((s, i) => s + i.priceClp, 0)
+    /* Calcular total desde la BD (evita manipulación del precio desde el cliente) */
+    let totalClp = existentes.reduce((s, r) => s + (r.priceClp ?? 0), 0)
+
+    /* Validar código de descuento si se envió */
+    let discountUsed = 0
+    if (discountCode) {
+      const found = await prisma.discountCode.findUnique({ where: { code: discountCode.toUpperCase() } })
+      if (!found || !found.isActive) {
+        return NextResponse.json({ error: 'Código de descuento no válido' }, { status: 400 })
+      }
+      if (found.maxUses && found.usedCount >= found.maxUses) {
+        return NextResponse.json({ error: 'Código de descuento agotado' }, { status: 400 })
+      }
+      if (found.expiresAt && new Date(found.expiresAt) < new Date()) {
+        return NextResponse.json({ error: 'Código de descuento expirado' }, { status: 400 })
+      }
+      discountUsed = Math.round(totalClp * found.discountPct / 100)
+      totalClp = Math.max(0, totalClp - discountUsed)
+
+      await prisma.discountCode.update({
+        where: { id: found.id },
+        data: { usedCount: { increment: 1 } },
+      })
+    }
 
     const order = await prisma.order.create({
       data: {
@@ -50,23 +67,16 @@ export async function POST(request: NextRequest) {
         status: 'completed',
         paymentMethod: paymentMethod || 'simulated',
         items: {
-          create: items.map(i => ({
-            resourceId: i.id,
-            priceClp: i.priceClp,
-          })),
+          create: items.map(i => ({ resourceId: i.id, priceClp: i.priceClp })),
         },
       },
     })
 
-    await prisma.order.deleteMany({
-      where: { userId: user.id, status: 'cart' },
-    })
+    await prisma.order.deleteMany({ where: { userId: user.id, status: 'cart' } })
 
     return NextResponse.json({ success: true, orderId: order.id })
   } catch (err: any) {
-    console.error('CHECKOUT ERROR:', err.code || err.message, err.meta ? JSON.stringify(err.meta) : '')
-    return NextResponse.json({
-      error: `Error al procesar el pago: ${err.message || 'desconocido'}`,
-    }, { status: 500 })
+    console.error('Error en checkout:', err.message)
+    return NextResponse.json({ error: 'Error al procesar el pago' }, { status: 500 })
   }
 }

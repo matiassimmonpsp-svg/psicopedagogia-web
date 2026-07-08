@@ -3,78 +3,61 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { csrfCheck } from '@/lib/csrf'
 
+/** GET /api/cart — Obtiene los items del carrito del usuario */
 export async function GET() {
   const user = await getSession()
-  if (!user) {
-    return NextResponse.json({ items: [] })
-  }
+  if (!user) return NextResponse.json({ items: [] })
 
   const order = await prisma.order.findFirst({
     where: { userId: user.id, status: 'cart' },
-    include: {
-      items: {
-        include: { resource: { select: { id: true, title: true, course: { select: { name: true } } } } },
-      },
-    },
+    include: { items: { include: { resource: { select: { title: true, course: { select: { name: true } } } } } } },
   })
 
-  if (!order) {
-    return NextResponse.json({ items: [] })
-  }
-
-  const items = order.items.map(i => ({
+  const items = order?.items.map(i => ({
     id: i.resourceId,
     title: i.resource.title,
     priceClp: i.priceClp,
-    courseName: i.resource.course?.name || '',
-  }))
+    courseName: i.resource.course?.name || null,
+  })) || []
 
   return NextResponse.json({ items })
 }
 
+/** POST /api/cart — Agrega un recurso al carrito */
 export async function POST(request: NextRequest) {
   const csrf = csrfCheck(request)
   if (csrf) return csrf
 
   const user = await getSession()
-  if (!user) {
-    return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 })
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const { resourceId, priceClp } = await request.json()
+  if (!resourceId || !priceClp) {
+    return NextResponse.json({ error: 'Faltan datos' }, { status: 400 })
   }
 
-  const { resourceId, priceClp, title, courseName } = await request.json()
-  if (!resourceId || priceClp == null) {
-    return NextResponse.json({ error: 'Faltan campos' }, { status: 400 })
-  }
-
-  let order = await prisma.order.findFirst({
-    where: { userId: user.id, status: 'cart' },
-  })
-
+  /* Busca o crea una orden en estado 'cart' */
+  let order = await prisma.order.findFirst({ where: { userId: user.id, status: 'cart' } })
   if (!order) {
     order = await prisma.order.create({
       data: { userId: user.id, totalClp: 0, status: 'cart' },
     })
   }
 
-  const existing = await prisma.orderItem.findFirst({
+  /* Evita duplicados */
+  const existe = await prisma.orderItem.findFirst({
     where: { orderId: order.id, resourceId },
   })
+  if (existe) return NextResponse.json({ message: 'Ya está en el carrito' })
 
-  if (!existing) {
-    await prisma.orderItem.create({
-      data: { orderId: order.id, resourceId, priceClp: Number(priceClp) },
-    })
-  }
-
-  const total = await prisma.orderItem.aggregate({
-    where: { orderId: order.id },
-    _sum: { priceClp: true },
+  await prisma.orderItem.create({
+    data: { orderId: order.id, resourceId, priceClp },
   })
 
-  await prisma.order.update({
-    where: { id: order.id },
-    data: { totalClp: total._sum.priceClp || 0 },
-  })
+  /* Actualiza el total */
+  const items = await prisma.orderItem.findMany({ where: { orderId: order.id } })
+  const total = items.reduce((s, i) => s + i.priceClp, 0)
+  await prisma.order.update({ where: { id: order.id }, data: { totalClp: total } })
 
   return NextResponse.json({ success: true })
 }

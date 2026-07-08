@@ -3,17 +3,19 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { CreditCard, Shield, ArrowLeft, ShoppingBag, Percent } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { CreditCard, Shield, ArrowLeft, ShoppingBag, Percent, Loader2 } from 'lucide-react'
 import { formatClp } from '@/lib/utils'
 import { useCart } from '@/context/CartContext'
 
 export default function CheckoutPage() {
   const router = useRouter()
-  const { items, subtotal, clearCart, loading } = useCart()
+  const { items, subtotal, clearCart } = useCart()
   const [method, setMethod] = useState<'webpay' | 'flow' | 'transfer'>('webpay')
   const [discount, setDiscount] = useState<number | null>(null)
   const [discountPercent, setDiscountPercent] = useState(0)
   const [discountCode, setDiscountCode] = useState('')
+  const [paying, setPaying] = useState(false)
 
   useEffect(() => {
     const savedCode = sessionStorage.getItem('discountCode')
@@ -29,6 +31,8 @@ export default function CheckoutPage() {
   const total = discount ? Math.max(0, subtotal - discount) : subtotal
 
   const handlePay = async () => {
+    if (paying) return
+    setPaying(true)
     try {
       const res = await fetch('/api/checkout', {
         method: 'POST',
@@ -36,21 +40,24 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           items: items.map(i => ({ id: i.id, priceClp: i.priceClp })),
           paymentMethod: method,
+          discountCode: discountCode || undefined,
         }),
       })
       if (!res.ok) {
         const data = await res.json()
-        alert(data.error || 'Error al procesar el pago')
+        toast.error(data.error || 'Error al procesar el pago')
         return
       }
       await clearCart()
       sessionStorage.removeItem('discountCode')
       sessionStorage.removeItem('discountAmount')
       sessionStorage.removeItem('discountPercent')
-      alert('¡Compra realizada con éxito!')
+      toast.success('¡Compra realizada con éxito!')
       router.push('/mis-descargas')
     } catch {
-      alert('Error de conexión. Intenta de nuevo.')
+      toast.error('Error de conexión. Intenta de nuevo.')
+    } finally {
+      setPaying(false)
     }
   }
 
@@ -111,8 +118,9 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      <button onClick={handlePay} className="btn-primary w-full flex items-center justify-center gap-2">
-        <CreditCard size={18} /> Pagar {formatClp(total)}
+      <button onClick={handlePay} disabled={paying} className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50">
+        {paying ? <Loader2 size={18} className="animate-spin" /> : <CreditCard size={18} />}
+        {paying ? 'Procesando...' : `Pagar ${formatClp(total)}`}
       </button>
       <p className="flex items-center justify-center gap-1 text-xs text-gray-400 mt-3">
         <Shield size={12} /> Pago seguro cifrado SSL

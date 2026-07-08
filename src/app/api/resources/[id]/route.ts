@@ -4,19 +4,17 @@ import { requireAdmin } from '@/lib/auth'
 import { upsertTags } from '@/lib/utils'
 import { csrfCheck } from '@/lib/csrf'
 
+/** GET /api/resources/[id] — Obtiene un recurso */
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   const resource = await prisma.resource.findUnique({
     where: { id: params.id },
     include: { course: true, area: true, subarea: true, tags: { include: { tag: true } } },
   })
-
-  if (!resource) {
-    return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
-  }
-
+  if (!resource) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
   return NextResponse.json({ resource })
 }
 
+/** PATCH /api/resources/[id] — Actualiza solo el estado (activo/inactivo) */
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   const csrf = csrfCheck(request)
   if (csrf) return csrf
@@ -24,17 +22,18 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   try {
-    const body = await request.json()
+    const { isActive } = await request.json()
     const resource = await prisma.resource.update({
       where: { id: params.id },
-      data: { isActive: body.isActive },
+      data: { isActive },
     })
     return NextResponse.json({ resource })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Error al actualizar' }, { status: 500 })
+    return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
 
+/** PUT /api/resources/[id] — Actualiza todos los campos de un recurso */
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   const csrf = csrfCheck(request)
   if (csrf) return csrf
@@ -50,30 +49,22 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     const existing = await prisma.resource.findUnique({ where: { id: params.id } })
-    if (!existing) {
-      return NextResponse.json({ error: 'Recurso no encontrado' }, { status: 404 })
-    }
+    if (!existing) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
 
-    const updateData: any = {
-      title,
-      description: description || '',
+    const data: any = {
+      title, description: description || '',
       resourceType: resourceType || 'evaluation',
       isFree: isFree ?? true,
       priceClp: isFree ? null : (priceClp ? parseInt(priceClp) : existing.priceClp),
-      courseId: parseInt(courseId),
-      areaId: parseInt(areaId),
+      courseId: parseInt(courseId), areaId: parseInt(areaId),
       subareaId: subareaId ? parseInt(subareaId) : null,
     }
+    if (filePath) data.filePath = filePath
+    if (editablePath !== undefined) data.editablePath = editablePath
+    if (previewPath) data.previewPath = previewPath
+    if (promoFreeUntil !== undefined) data.promoFreeUntil = promoFreeUntil
 
-    if (filePath) updateData.filePath = filePath
-    if (editablePath !== undefined) updateData.editablePath = editablePath
-    if (previewPath) updateData.previewPath = previewPath
-    if (promoFreeUntil !== undefined) updateData.promoFreeUntil = promoFreeUntil
-
-    const resource = await prisma.resource.update({
-      where: { id: params.id },
-      data: updateData,
-    })
+    const resource = await prisma.resource.update({ where: { id: params.id }, data })
 
     if (tags !== undefined) {
       await prisma.resourceTag.deleteMany({ where: { resourceId: resource.id } })
@@ -84,13 +75,13 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       where: { id: resource.id },
       include: { course: true, area: true, subarea: true, tags: { include: { tag: true } } },
     })
-
     return NextResponse.json({ resource: updated })
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Error al actualizar' }, { status: 500 })
   }
 }
 
+/** DELETE /api/resources/[id] — Elimina un recurso */
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   const csrf = csrfCheck(request)
   if (csrf) return csrf
@@ -102,6 +93,6 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     await prisma.resource.delete({ where: { id: params.id } })
     return NextResponse.json({ success: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Error al eliminar' }, { status: 500 })
+    return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }

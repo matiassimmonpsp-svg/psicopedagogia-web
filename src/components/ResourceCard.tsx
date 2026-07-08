@@ -1,22 +1,26 @@
 'use client'
 
 import Link from 'next/link'
+import { useState, memo } from 'react'
+import toast from 'react-hot-toast'
 import { Download, Coffee, BookOpen, Clock, Edit, Pause, Play, Trash2 } from 'lucide-react'
 import type { Resource } from '@/lib/data'
 import { formatClp, hasActivePromo } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
-import { useState } from 'react'
 
 interface ResourceCardProps {
   resource: Resource
   onUpdate?: () => void
 }
 
-export function ResourceCard({ resource, onUpdate }: ResourceCardProps) {
+export const ResourceCard = memo(function ResourceCard({ resource, onUpdate }: ResourceCardProps) {
   const { user } = useAuth()
   const isAdmin = user?.role === 'admin'
   const promoActive = hasActivePromo(resource)
   const [imgError, setImgError] = useState(false)
+
+  const isPaused = resource.isActive === false
+  const hasCustomPreview = resource.previewPath && resource.previewPath !== '/previews/placeholder.svg' && !imgError
 
   async function handleToggleActive(e: React.MouseEvent) {
     e.preventDefault()
@@ -25,13 +29,12 @@ export function ResourceCard({ resource, onUpdate }: ResourceCardProps) {
       const res = await fetch(`/api/resources/${resource.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive: !(resource.isActive ?? true) }),
+        body: JSON.stringify({ isActive: !isPaused }),
       })
       if (!res.ok) throw new Error('Error')
-      if (onUpdate) onUpdate()
-      else window.location.reload()
+      onUpdate?.()
     } catch {
-      alert('Error al cambiar estado')
+      toast.error('Error al cambiar estado')
     }
   }
 
@@ -42,15 +45,11 @@ export function ResourceCard({ resource, onUpdate }: ResourceCardProps) {
     try {
       const res = await fetch(`/api/resources/${resource.id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Error')
-      if (onUpdate) onUpdate()
-      else window.location.reload()
+      onUpdate?.()
     } catch {
-      alert('Error al eliminar')
+      toast.error('Error al eliminar')
     }
   }
-
-  const isPaused = resource.isActive === false
-  const hasCustomPreview = resource.previewPath && resource.previewPath !== '/previews/placeholder.svg' && !imgError
 
   return (
     <Link href={`/recurso/${resource.id}`} className="card overflow-hidden group">
@@ -93,10 +92,6 @@ export function ResourceCard({ resource, onUpdate }: ResourceCardProps) {
             </button>
           </div>
         )}
-
-        {isPaused && (
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/0 transition-colors z-[2]" />
-        )}
       </div>
       <div className={`p-4 ${isPaused ? 'opacity-40' : ''}`}>
         <p className="text-xs text-primary-600 font-medium mb-1">{resource.courseName}</p>
@@ -125,4 +120,4 @@ export function ResourceCard({ resource, onUpdate }: ResourceCardProps) {
       </div>
     </Link>
   )
-}
+})

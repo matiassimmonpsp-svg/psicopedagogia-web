@@ -10,7 +10,7 @@ import type { Subarea } from '@/lib/data'
 import { useCatalog } from '@/lib/hooks'
 
 function getSubareasByArea(areaId: number): Subarea[] {
-  return subareas.filter(s => s.areaId === areaId)
+  return subareas.filter((s: any) => s.areaId === areaId)
 }
 
 export default function CoursePage({ params, searchParams }: { params: { slug: string }; searchParams: { area?: string; subarea?: string } }) {
@@ -19,7 +19,7 @@ export default function CoursePage({ params, searchParams }: { params: { slug: s
 
   const resources = useMemo(() => {
     if (!course) return []
-    return allCatalog.filter(r => r.courseName?.toLowerCase() === course.name?.toLowerCase())
+    return allCatalog.filter((r: any) => r.courseSlug === course.slug)
   }, [allCatalog, course])
 
   if (!course) notFound()
@@ -27,11 +27,13 @@ export default function CoursePage({ params, searchParams }: { params: { slug: s
   const selectedAreaSlug = searchParams.area
   const selectedSubareaSlug = searchParams.subarea
   const selectedArea = selectedAreaSlug ? areas.find(a => a.slug === selectedAreaSlug) : null
-  const selectedSubarea = selectedSubareaSlug && selectedArea ? subareas.find(s => s.slug === selectedSubareaSlug && s.areaId === selectedArea.id) : null
+  const selectedSubarea = selectedSubareaSlug && selectedArea
+    ? subareas.find((s: any) => s.slug === selectedSubareaSlug && s.areaId === selectedArea.id)
+    : null
 
-  const filteredResources = resources.filter(r => {
-    if (selectedArea && r.areaId !== selectedArea.id) return false
-    if (selectedSubarea && r.subareaId !== selectedSubarea.id) return false
+  const filteredResources = resources.filter((r: any) => {
+    if (selectedAreaSlug && r.areaSlug !== selectedAreaSlug) return false
+    if (selectedSubareaSlug && r.subareaSlug !== selectedSubareaSlug) return false
     return true
   })
 
@@ -45,11 +47,11 @@ export default function CoursePage({ params, searchParams }: { params: { slug: s
       <p className="text-gray-500 mb-8">Material de evaluación psicopedagógica para {course.name}</p>
 
       <div className="flex flex-wrap gap-2 mb-6">
-        <Link href={`/cursos/${course.slug}`} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${!selectedArea ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-primary-300'}`}>
+        <Link href={`/cursos/${course.slug}`} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${!selectedAreaSlug ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-primary-300'}`}>
           Todas las áreas
         </Link>
         {areas.map(a => (
-          <Link key={a.id} href={`/cursos/${course.slug}?area=${a.slug}`} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${selectedArea?.id === a.id ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-primary-300'}`}>
+          <Link key={a.slug} href={`/cursos/${course.slug}?area=${a.slug}`} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${selectedAreaSlug === a.slug ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-primary-300'}`}>
             {a.name}
           </Link>
         ))}
@@ -60,7 +62,7 @@ export default function CoursePage({ params, searchParams }: { params: { slug: s
           <Link href={`/cursos/${course.slug}?area=${selectedArea.slug}`} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${!selectedSubarea ? 'bg-accent-100 text-accent-800' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
             Todas las subáreas
           </Link>
-          {getSubareasByArea(selectedArea.id).map(s => (
+          {getSubareasByArea(selectedArea.id).map((s: any) => (
             <Link key={s.id} href={`/cursos/${course.slug}?area=${selectedArea.slug}&subarea=${s.slug}`} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedSubarea?.id === s.id ? 'bg-accent-100 text-accent-800' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
               {s.name}
             </Link>
@@ -70,7 +72,7 @@ export default function CoursePage({ params, searchParams }: { params: { slug: s
 
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-          {[1,2,3,4,5,6].map(i => <div key={i} className="animate-pulse"><div className="aspect-[3/4] bg-gray-200 rounded-xl" /><div className="mt-3 h-4 bg-gray-200 rounded w-3/4" /></div>)}
+          {[1,2,3,4,5,6].map(i => <div key={i} className="animate-pulse"><div className="aspect-[3/4] bg-gray-200 rounded-xl" /></div>)}
         </div>
       ) : filteredResources.length === 0 ? (
         <div className="text-center py-16">
@@ -78,7 +80,7 @@ export default function CoursePage({ params, searchParams }: { params: { slug: s
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-          {filteredResources.map(r => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
+          {filteredResources.map((r: any) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
         </div>
       )}
     </div>

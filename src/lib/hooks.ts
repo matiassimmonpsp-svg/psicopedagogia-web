@@ -1,18 +1,17 @@
 import useSWR from 'swr'
-import type { Resource } from '@/lib/data'
 
 const fetcher = (url: string) => fetch(url).then(r => r.json())
 
+/** Hook para obtener datos del catálogo con caché SWR y refresh manual */
 export function useCatalog() {
   const { data, error, isLoading, mutate } = useSWR('/api/catalog', fetcher, {
-    revalidateOnFocus: true,
-    dedupingInterval: 30_000,
+    revalidateOnFocus: false,
+    dedupingInterval: 60_000,
   })
-
   return {
-    resources: (data?.resources || []) as Resource[],
+    resources: data?.resources || [],
     loading: isLoading,
     error,
-    refresh: mutate,
+    refresh: () => mutate(),
   }
 }

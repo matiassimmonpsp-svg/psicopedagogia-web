@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { Toaster } from 'react-hot-toast'
 import { Navbar } from '@/components/Navbar'
 import { Footer } from '@/components/Footer'
 import { AuthProvider } from '@/context/AuthContext'
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${inter.className} min-h-screen flex flex-col bg-gray-50`}>
         <AuthProvider>
           <CartProvider>
+            <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
             <Navbar />
             <main className="flex-1">{children}</main>
             <Footer />

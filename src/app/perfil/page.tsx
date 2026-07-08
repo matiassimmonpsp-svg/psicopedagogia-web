@@ -1,11 +1,30 @@
 'use client'
 
-import { User, Mail, Calendar, LogOut } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { User, Mail, LogOut } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
 
 export default function ProfilePage() {
   const { user, loading, logout } = useAuth()
+  const [downloadCount, setDownloadCount] = useState(0)
+  const [orderCount, setOrderCount] = useState(0)
+
+  useEffect(() => {
+    if (!user) return
+    fetch('/api/downloads')
+      .then(r => r.json())
+      .then(d => setDownloadCount(d.downloads?.length || 0))
+      .catch(() => {})
+  }, [user])
+
+  useEffect(() => {
+    if (!user) return
+    fetch('/api/orders/count')
+      .then(r => r.json())
+      .then(d => setOrderCount(d.count || 0))
+      .catch(() => {})
+  }, [user])
 
   if (loading) {
     return (
@@ -56,11 +75,11 @@ export default function ProfilePage() {
 
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="card p-4 text-center">
-          <p className="text-2xl font-bold text-primary-600">0</p>
+          <p className="text-2xl font-bold text-primary-600">{downloadCount}</p>
           <p className="text-sm text-gray-500">Descargas</p>
         </div>
         <div className="card p-4 text-center">
-          <p className="text-2xl font-bold text-primary-600">0</p>
+          <p className="text-2xl font-bold text-primary-600">{orderCount}</p>
           <p className="text-sm text-gray-500">Compras</p>
         </div>
       </div>

@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Copy, Check, Tag, Edit3 } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { Plus, Trash2, Copy, Check, Tag, Edit3, Power, PowerOff } from 'lucide-react'
 
 interface DiscountCode {
   id: number
   code: string
-  discountPercent: number
+  discountPct: number
   isActive: boolean
   maxUses: number | null
   usedCount: number
@@ -19,9 +20,10 @@ export default function AdminDiscountCodes() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
+  const [toggling, setToggling] = useState<number | null>(null)
 
   const [code, setCode] = useState('')
-  const [discountPercent, setDiscountPercent] = useState('')
+  const [discountPct, setDiscountPct] = useState('')
   const [maxUses, setMaxUses] = useState('')
   const [expiresAt, setExpiresAt] = useState('')
 
@@ -43,7 +45,7 @@ export default function AdminDiscountCodes() {
 
   function resetForm() {
     setCode('')
-    setDiscountPercent('')
+    setDiscountPct('')
     setMaxUses('')
     setExpiresAt('')
     setEditingId(null)
@@ -53,7 +55,7 @@ export default function AdminDiscountCodes() {
   function handleEdit(c: DiscountCode) {
     setEditingId(c.id)
     setCode(c.code)
-    setDiscountPercent(String(c.discountPercent))
+    setDiscountPct(String(c.discountPct))
     setMaxUses(c.maxUses ? String(c.maxUses) : '')
     setExpiresAt(c.expiresAt ? c.expiresAt.split('T')[0] : '')
     setShowForm(true)
@@ -61,18 +63,18 @@ export default function AdminDiscountCodes() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!code.trim() || !discountPercent) return
+    if (!code.trim() || !discountPct) return
 
     try {
       const url = editingId ? `/api/discount-codes/${editingId}` : '/api/discount-codes'
-      const method = editingId ? 'PATCH' : 'POST'
+      const method = editingId ? 'PUT' : 'POST'
 
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           code: code.trim(),
-          discountPercent: Number(discountPercent),
+          discountPct: Number(discountPct),
           maxUses: maxUses || null,
           expiresAt: expiresAt || null,
         }),
@@ -84,7 +86,7 @@ export default function AdminDiscountCodes() {
       resetForm()
       fetchCodes()
     } catch (err: any) {
-      alert(err.message)
+      toast.error(err.message)
     }
   }
 
@@ -94,7 +96,25 @@ export default function AdminDiscountCodes() {
       await fetch(`/api/discount-codes/${id}`, { method: 'DELETE' })
       setCodes(prev => prev.filter(c => c.id !== id))
     } catch {
-      alert('Error al eliminar')
+      toast.error('Error al eliminar')
+    }
+  }
+
+  async function toggleActive(id: number, current: boolean) {
+    setToggling(id)
+    try {
+      const res = await fetch(`/api/discount-codes/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !current }),
+      })
+      if (res.ok) {
+        setCodes(prev => prev.map(c => c.id === id ? { ...c, isActive: !current } : c))
+      }
+    } catch {
+      toast.error('Error al cambiar estado')
+    } finally {
+      setToggling(null)
     }
   }
 
@@ -102,6 +122,18 @@ export default function AdminDiscountCodes() {
     navigator.clipboard.writeText(code)
     setCopiedId(id)
     setTimeout(() => setCopiedId(null), 2000)
+  }
+
+  function isExpired(c: DiscountCode) {
+    return c.expiresAt && new Date(c.expiresAt) < new Date()
+  }
+
+  function isExhausted(c: DiscountCode) {
+    return c.maxUses !== null && c.usedCount >= c.maxUses
+  }
+
+  function isUnavailable(c: DiscountCode) {
+    return !c.isActive || isExpired(c) || isExhausted(c)
   }
 
   return (
@@ -123,7 +155,7 @@ export default function AdminDiscountCodes() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Descuento (%)</label>
-              <input type="number" value={discountPercent} onChange={e => setDiscountPercent(e.target.value)} className="input-field" placeholder="10" min="1" max="100" required />
+              <input type="number" value={discountPct} onChange={e => setDiscountPct(e.target.value)} className="input-field" placeholder="10" min="1" max="100" required />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -154,7 +186,7 @@ export default function AdminDiscountCodes() {
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
                   <th className="text-left py-3 px-4 text-gray-500 font-medium">Código</th>
-                  <th className="text-left py-3 px-4 text-gray-500 font-medium">Descuento</th>
+                  <th className="text-left py-3 px-4 text-gray-500 font-medium">Dto.</th>
                   <th className="text-left py-3 px-4 text-gray-500 font-medium">Usos</th>
                   <th className="text-left py-3 px-4 text-gray-500 font-medium">Expira</th>
                   <th className="text-left py-3 px-4 text-gray-500 font-medium">Estado</th>
@@ -162,8 +194,13 @@ export default function AdminDiscountCodes() {
                 </tr>
               </thead>
               <tbody>
-                {codes.map(c => (
-                  <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                {codes.map(c => {
+                  const expired = isExpired(c)
+                  const exhausted = isExhausted(c)
+                  const unavailable = isUnavailable(c)
+                  const usoPct = c.maxUses ? Math.round((c.usedCount / c.maxUses) * 100) : 0
+                  return (
+                  <tr key={c.id} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${unavailable ? 'opacity-50' : ''}`}>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
                         <Tag size={14} className="text-primary-500" />
@@ -177,18 +214,45 @@ export default function AdminDiscountCodes() {
                         </button>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-gray-700 font-medium">{c.discountPercent}%</td>
-                    <td className="py-3 px-4 text-gray-500">{c.usedCount}{c.maxUses ? ` / ${c.maxUses}` : ''}</td>
+                    <td className="py-3 px-4 text-gray-700 font-medium">{c.discountPct}%</td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-500 text-xs whitespace-nowrap">{c.usedCount}{c.maxUses ? ` / ${c.maxUses}` : ''}</span>
+                        {c.maxUses && (
+                          <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full transition-all ${usoPct >= 100 ? 'bg-red-400' : usoPct >= 80 ? 'bg-amber-400' : 'bg-primary-400'}`} style={{ width: `${usoPct}%` }} />
+                          </div>
+                        )}
+                      </div>
+                    </td>
                     <td className="py-3 px-4 text-gray-500">
-                      {c.expiresAt ? new Date(c.expiresAt).toLocaleDateString('es-CL') : '—'}
+                      {c.expiresAt ? (
+                        <span className={expired ? 'text-red-500' : ''}>
+                          {new Date(c.expiresAt).toLocaleDateString('es-CL')}
+                        </span>
+                      ) : '—'}
                     </td>
                     <td className="py-3 px-4">
-                      <span className={`badge ${c.isActive ? 'badge-green' : 'badge-red'}`}>
-                        {c.isActive ? 'Activo' : 'Inactivo'}
-                      </span>
+                      {expired ? (
+                        <span className="badge badge-red">Expirado</span>
+                      ) : exhausted ? (
+                        <span className="badge badge-red">Agotado</span>
+                      ) : (
+                        <span className={`badge ${c.isActive ? 'badge-green' : 'badge-red'}`}>
+                          {c.isActive ? 'Activo' : 'Inactivo'}
+                        </span>
+                      )}
                     </td>
                     <td className="py-3 px-4 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => toggleActive(c.id, c.isActive)}
+                          disabled={toggling === c.id || expired || exhausted}
+                          className="p-1.5 text-gray-400 hover:text-primary-600 rounded hover:bg-primary-50 transition-colors disabled:opacity-30"
+                          title={c.isActive ? 'Desactivar' : 'Activar'}
+                        >
+                          {c.isActive ? <PowerOff size={14} /> : <Power size={14} />}
+                        </button>
                         <button onClick={() => handleEdit(c)} className="p-1.5 text-gray-400 hover:text-amber-600 rounded hover:bg-amber-50 transition-colors" title="Editar">
                           <Edit3 size={14} />
                         </button>
@@ -198,7 +262,8 @@ export default function AdminDiscountCodes() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>

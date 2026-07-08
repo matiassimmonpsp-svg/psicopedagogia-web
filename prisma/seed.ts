@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
-  // Clean existing data
+  // ──── 1. Limpiar datos existentes (orden inverso a creación) ────
   await prisma.download.deleteMany()
   await prisma.orderItem.deleteMany()
   await prisma.order.deleteMany()
@@ -18,8 +18,9 @@ async function main() {
   await prisma.socialPost.deleteMany()
 
   const hash = await bcrypt.hash('demo123', 10)
+  const testHash = await bcrypt.hash('test123', 10)
 
-  // Users
+  // ──── 2. Usuarios de prueba ────
   const admin = await prisma.user.create({
     data: {
       name: 'Administrador',
@@ -38,7 +39,16 @@ async function main() {
     }
   })
 
-  // Courses (Prekínder to 8° Básico)
+  await prisma.user.create({
+    data: {
+      name: 'Diego Meneses',
+      email: 'd.menesesp@live.com',
+      passwordHash: testHash,
+      role: 'user',
+    }
+  })
+
+  // ──── 3. Cursos (Prekínder a 8° Básico) ────
   const courseNames = [
     { name: 'Prekínder', slug: 'prekinder', order: 1 },
     { name: 'Kínder', slug: 'kinder', order: 2 },
@@ -57,7 +67,7 @@ async function main() {
     courses.push(await prisma.course.create({ data: { name: c.name, slug: c.slug, sortOrder: c.order } }))
   }
 
-  // Areas
+  // ──── 4. Áreas principales ────
   const areaData = [
     { name: 'Lectoescritura', slug: 'lectoescritura', order: 1 },
     { name: 'Pensamiento Lógico Matemático', slug: 'pensamiento-logico-matematico', order: 2 },
@@ -69,7 +79,7 @@ async function main() {
     areas.push(await prisma.area.create({ data: { name: a.name, slug: a.slug, sortOrder: a.order } }))
   }
 
-  // Subareas
+  // ──── 5. Subáreas ────
   const subareaData = [
     // Lectoescritura
     { areaSlug: 'lectoescritura', name: 'Conciencia Fonológica', slug: 'conciencia-fonologica' },
@@ -122,7 +132,7 @@ async function main() {
     }))
   }
 
-  // Tags
+  // ──── 6. Tags (etiquetas) ────
   const tagNames = [
     'memoria-de-trabajo', 'atencion', 'conciencia-fonologica', 'comprension-lectora',
     'razonamiento-matematico', 'numeracion', 'resolucion-de-problemas', 'grafomotricidad',
@@ -139,7 +149,7 @@ async function main() {
 
   const tag = (slug: string) => tags.find(t => t.slug === slug)!
 
-  // Helper to create resources
+  // ──── 7. Recursos de evaluación y material educativo ────
   const resourcesData = [
     // Prekínder - Lectoescritura
     { title: 'Evaluación de Conciencia Fonológica - Prekínder', desc: 'Instrumento diseñado para evaluar el desarrollo de la conciencia fonológica en estudiantes de Prekínder (4-5 años). Incluye actividades de identificación de sonidos iniciales, rimas, segmentación silábica y manipulación de fonemas. Ideal para detectar tempranamente dificultades en la base de la lectoescritura. Contiene 15 ítems con instrucciones para el evaluador y hoja de registro de resultados.', course: 'prekinder', area: 'lectoescritura', free: true, price: 0, tags: ['conciencia-fonologica', 'discriminacion-auditiva'] },
@@ -181,6 +191,16 @@ async function main() {
     { title: 'Evaluación de Flexibilidad Cognitiva', desc: 'Instrumento para medir la capacidad de cambiar entre reglas, perspectivas y estrategias en estudiantes de 3° a 6° básico. Incluye tareas de clasificación múltiple, cambios de criterio, generación de alternativas y resolución de problemas desde múltiples perspectivas. Fundamental para evaluar funciones ejecutivas superiores.', course: '3-basico', area: 'habilidades-cognitivas', subarea: 'flexibilidad-cognitiva', free: false, price: 6990, tags: ['flexibilidad-cognitiva', 'funciones-ejecutivas'] },
     { title: 'Test de Atención Sostenida', desc: 'Evaluación de la capacidad de mantener la atención en una tarea continua durante un período prolongado en estudiantes de 3° a 6° básico. Incluye tareas de cancelación visual con estímulos distractores y registro de aciertos, omisiones y falsas alarmas. Incluye índices de atención sostenida y control de impulsos.', course: '3-basico', area: 'habilidades-cognitivas', subarea: 'atencion', free: true, price: 0, tags: ['atencion', 'inhibicion'] },
     { title: 'Evaluación de Memoria de Trabajo Visoespacial', desc: 'Mide la capacidad de retener y manipular información visual y espacial en estudiantes de 3° a 6° básico. Incluye tareas de matrices, patrones visuales, memoria de localización espacial y span visoespacial. Evalúa el componente visoespacial de la memoria de trabajo, fundamental para el aprendizaje matemático y la lectura.', course: '3-basico', area: 'habilidades-cognitivas', subarea: 'memoria-de-trabajo', free: false, price: 5990, tags: ['memoria-de-trabajo', 'percepcion-visual'] },
+
+    // Kínder - Lectoescritura
+    { title: 'Evaluación de Conciencia Fonológica - Kínder', desc: 'Evalúa habilidades fonológicas básicas en estudiantes de Kínder: rimas, segmentación silábica, identificación de sonidos iniciales y finales. Incluye 25 ítems con apoyo visual a todo color y protocolo de aplicación individual. Ideal para detectar dificultades tempranas en el proceso de adquisición de la lectoescritura.', course: 'kinder', area: 'lectoescritura', free: false, price: 4990, tags: ['conciencia-fonologica', 'discriminacion-auditiva'] },
+    { title: 'Prueba de Habilidades Pre-Lectoras', desc: 'Evalúa los prerequisitos para la lectura en niños de Kínder: conocimiento del alfabeto, conciencia fonológica, vocabulario visual y comprensión oral. Incluye actividades lúdicas con imágenes coloridas y un informe cualitativo con sugerencias para el hogar y el aula.', course: 'kinder', area: 'lectoescritura', free: true, price: 0, tags: ['pre-lectura', 'vocabulario'] },
+
+    // Kínder - Pensamiento Lógico Matemático
+    { title: 'Evaluación de Nociones Matemáticas Básicas', desc: 'Evalúa conceptos matemáticos fundamentales en Kínder: clasificación, seriación, correspondencia uno a uno, conteo oral y reconocimiento de números del 1 al 20. Incluye material manipulable recortable y hoja de registro con indicadores de logro por eje.', course: 'kinder', area: 'pensamiento-logico-matematico', free: false, price: 4990, tags: ['nociones-matematicas', 'clasificacion', 'seriacion'] },
+
+    // Kínder - Habilidades Cognitivas
+    { title: 'Test de Atención y Memoria Visual', desc: 'Evalúa atención sostenida, memoria visual a corto plazo y discriminación visual en niños de Kínder a 1° básico. Incluye tareas de emparejamiento de figuras, memoria de secuencias visuales, búsqueda de diferencias y reproducción de patrones. Formato lúdico con duración máxima de 20 minutos.', course: 'kinder', area: 'habilidades-cognitivas', subarea: 'memoria-de-trabajo', free: false, price: 5990, tags: ['memoria-visual', 'atencion', 'discriminacion-visual'] },
 
     // 4° Básico - Lectoescritura
     { title: 'Evaluación de Lectura Comprensiva - 4° Básico', desc: 'Textos expositivos y narrativos con preguntas de análisis para cuarto año básico. Incluye dos textos de diferente tipología (expositivo-científico y narrativo-literario) con preguntas de comprensión literal, inferencial, crítica y vocabulario contextual. Evalúa habilidades de localización de información, inferencia, interpretación y reflexión.', course: '4-basico', area: 'lectoescritura', free: false, price: 5990, tags: ['comprension-lectora', 'vocabulario'] },
@@ -237,12 +257,12 @@ async function main() {
           data: { resourceId: resource.id, tagId: tag(tagSlug)!.id || 0 }
         })
       } catch {
-        // skip duplicates
+        // Omitir duplicados
       }
     }
   }
 
-  // Social posts (mock)
+  // ──── 8. Posts de Instagram de ejemplo ────
   await prisma.socialPost.createMany({
     data: [
       { instagramPostId: '1', mediaUrl: '/social/post1.svg', caption: 'Tip educativo: ¿Cómo estimular la conciencia fonológica en casa? 🧠📚', permalink: '#', postedAt: new Date('2026-07-01') },

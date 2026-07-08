@@ -1,7 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import type { AuthUser } from '@/lib/auth'
 
 interface AuthContextType {
@@ -15,28 +14,27 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
-  const router = useRouter()
 
   const refresh = useCallback(async () => {
     try {
       const res = await fetch('/api/auth/me')
       if (res.ok) {
         const data = await res.json()
-        setUser(data.user)
+        setUser(data.user || null)
       } else {
         setUser(null)
       }
     } catch {
       setUser(null)
-    } finally {
-      setLoading(false)
     }
   }, [])
 
-  useEffect(() => { refresh() }, [refresh])
+  useEffect(() => {
+    refresh().finally(() => setLoading(false))
+  }, [refresh])
 
   const login = async (email: string, password: string): Promise<string | null> => {
     try {
@@ -47,8 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
       const data = await res.json()
       if (!res.ok) return data.error || 'Error al iniciar sesión'
-      setUser(data.user)
-      router.push('/')
+      await refresh()
       return null
     } catch {
       return 'Error de conexión'
@@ -64,8 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
       const data = await res.json()
       if (!res.ok) return data.error || 'Error al registrarse'
-      setUser(data.user)
-      router.push('/')
+      await refresh()
       return null
     } catch {
       return 'Error de conexión'
@@ -75,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' })
     setUser(null)
-    router.push('/')
+    window.location.href = '/'
   }
 
   return (
