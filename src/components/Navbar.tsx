@@ -5,9 +5,11 @@ import { useState } from 'react'
 import { Menu, X, ChevronDown, ShoppingCart, Search, User, LogOut } from 'lucide-react'
 import { courses } from '@/lib/data'
 import { useAuth } from '@/context/AuthContext'
+import { useCart } from '@/context/CartContext'
 
 export function Navbar() {
   const { user, loading, logout } = useAuth()
+  const { count } = useCart()
   const [menuOpen, setMenuOpen] = useState(false)
   const [coursesOpen, setCoursesOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
@@ -50,6 +52,11 @@ export function Navbar() {
           <div className="flex items-center gap-3">
             <Link href="/carrito" className="relative p-2 text-gray-600 hover:text-primary-600 transition-colors">
               <ShoppingCart size={20} />
+              {count > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {count > 9 ? '9+' : count}
+                </span>
+              )}
             </Link>
             {loading ? (
               <div className="w-8 h-8 bg-gray-100 rounded-full animate-pulse" />

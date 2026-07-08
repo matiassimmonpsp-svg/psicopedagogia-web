@@ -1,27 +1,12 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
 import { ResourceCard } from '@/components/ResourceCard'
-import type { Resource } from '@/lib/data'
+import { useCatalog } from '@/lib/hooks'
 
 export default function EducationalMaterialPage() {
-  const [materials, setMaterials] = useState<Resource[]>([])
-  const [loading, setLoading] = useState(true)
+  const { resources: allResources, loading, refresh } = useCatalog()
 
-  const fetchResources = useCallback(async () => {
-    setLoading(true)
-    try {
-      const res = await fetch('/api/catalog')
-      const data = await res.json()
-      const all: Resource[] = data.resources || []
-      setMaterials(all.filter((r: Resource) => r.resourceType === 'educational'))
-    } catch {
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => { fetchResources() }, [fetchResources])
+  const materials = allResources.filter(r => r.resourceType === 'educational')
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -38,7 +23,7 @@ export default function EducationalMaterialPage() {
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-          {materials.map(r => <ResourceCard key={r.id} resource={r} onUpdate={fetchResources} />)}
+          {materials.map(r => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
         </div>
       )}
     </div>

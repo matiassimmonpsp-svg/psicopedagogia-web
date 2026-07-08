@@ -61,6 +61,7 @@ model Resource {
   title          String
   description    String
   filePath       String         @map("file_path")
+  editablePath   String?        @map("editable_path")
   previewPath    String         @map("preview_path")
   resourceType   String         @default("evaluation") @map("resource_type")
   isFree         Boolean        @default(false) @map("is_free")
@@ -121,7 +122,7 @@ model OrderItem {
   orderId    String   @map("order_id")
   resourceId String   @map("resource_id")
   priceClp   Int      @map("price_clp")
-  order      Order    @relation(fields: [orderId], references: [id])
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   resource   Resource @relation(fields: [resourceId], references: [id])
 
   @@map("order_items")

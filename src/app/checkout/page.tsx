@@ -5,27 +5,17 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { CreditCard, Shield, ArrowLeft, ShoppingBag, Percent } from 'lucide-react'
 import { formatClp } from '@/lib/utils'
-
-interface CartItem {
-  id: string
-  title: string
-  priceClp: number
-  courseName: string
-}
+import { useCart } from '@/context/CartContext'
 
 export default function CheckoutPage() {
   const router = useRouter()
-  const [items, setItems] = useState<CartItem[]>([])
+  const { items, subtotal, clearCart, loading } = useCart()
   const [method, setMethod] = useState<'webpay' | 'flow' | 'transfer'>('webpay')
   const [discount, setDiscount] = useState<number | null>(null)
   const [discountPercent, setDiscountPercent] = useState(0)
   const [discountCode, setDiscountCode] = useState('')
 
   useEffect(() => {
-    const stored = localStorage.getItem('cart')
-    if (stored) {
-      try { setItems(JSON.parse(stored)) } catch {}
-    }
     const savedCode = sessionStorage.getItem('discountCode')
     const savedDiscount = sessionStorage.getItem('discountAmount')
     const savedPercent = sessionStorage.getItem('discountPercent')
@@ -36,15 +26,32 @@ export default function CheckoutPage() {
     }
   }, [])
 
-  const subtotal = items.reduce((sum, i) => sum + i.priceClp, 0)
   const total = discount ? Math.max(0, subtotal - discount) : subtotal
 
-  const handlePay = () => {
-    localStorage.removeItem('cart')
-    sessionStorage.removeItem('discountCode')
-    sessionStorage.removeItem('discountAmount')
-    alert('¡Compra realizada con éxito! Recibirás los recursos en tu correo.')
-    router.push('/')
+  const handlePay = async () => {
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: items.map(i => ({ id: i.id, priceClp: i.priceClp })),
+          paymentMethod: method,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        alert(data.error || 'Error al procesar el pago')
+        return
+      }
+      await clearCart()
+      sessionStorage.removeItem('discountCode')
+      sessionStorage.removeItem('discountAmount')
+      sessionStorage.removeItem('discountPercent')
+      alert('¡Compra realizada con éxito!')
+      router.push('/mis-descargas')
+    } catch {
+      alert('Error de conexión. Intenta de nuevo.')
+    }
   }
 
   if (items.length === 0) {

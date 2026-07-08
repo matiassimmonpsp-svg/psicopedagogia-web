@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSession } from '@/lib/auth'
+import { requireAdmin } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { csrfCheck } from '@/lib/csrf'
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+  const csrf = csrfCheck(request)
+  if (csrf) return csrf
+
   try {
-    const user = await getSession()
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    const user = await requireAdmin()
+    if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
     const body = await request.json()
     const { code, discountPercent, maxUses, expiresAt, isActive } = body
@@ -30,12 +32,13 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 }
 
-export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  const csrf = csrfCheck(request)
+  if (csrf) return csrf
+
   try {
-    const user = await getSession()
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    const user = await requireAdmin()
+    if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
     await prisma.discountCode.delete({ where: { id: Number(params.id) } })
     return NextResponse.json({ success: true })

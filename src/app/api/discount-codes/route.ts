@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSession } from '@/lib/auth'
+import { requireAdmin } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { csrfCheck } from '@/lib/csrf'
 
 export async function GET() {
   try {
@@ -12,6 +13,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const csrf = csrfCheck(request)
+  if (csrf) return csrf
+
   try {
     const body = await request.json()
     const { action } = body
@@ -46,10 +50,8 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const user = await getSession()
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    const user = await requireAdmin()
+    if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
     const { code, discountPercent, maxUses, expiresAt } = body
     if (!code || discountPercent == null) {

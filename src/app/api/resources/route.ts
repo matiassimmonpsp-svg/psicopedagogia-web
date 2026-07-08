@@ -1,7 +1,9 @@
-import { NextResponse } from 'next/server'
-import { getSession } from '@/lib/auth'
+import { NextRequest, NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
+import { upsertTags } from '@/lib/utils'
+import { csrfCheck } from '@/lib/csrf'
 
 async function resolveCourseId(mockId: number): Promise<number | null> {
   const mock = await import('@/lib/data')
@@ -48,15 +50,16 @@ async function resolveSubareaId(mockId: number): Promise<number | null> {
   return created.id
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const csrf = csrfCheck(request)
+  if (csrf) return csrf
+
   try {
-    const user = await getSession()
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    const user = await requireAdmin()
+    if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
     const body = await request.json()
-    const { title, description, resourceType, courseId, areaId, subareaId, isFree, priceClp, tags, filePath, previewPath } = body
+    const { title, description, resourceType, courseId, areaId, subareaId, isFree, priceClp, tags, filePath, editablePath, previewPath } = body
 
     if (!title || courseId == null || areaId == null || !filePath) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 })
@@ -83,6 +86,7 @@ export async function POST(request: Request) {
         title,
         description: description || '',
         filePath,
+        editablePath: editablePath || null,
         previewPath: previewPath || '/previews/placeholder.svg',
         resourceType: resourceType || 'evaluation',
         isFree: isFree ?? true,
@@ -95,15 +99,7 @@ export async function POST(request: Request) {
       },
     })
 
-    if (tags) {
-      const tagNames = String(tags).split(',').map((t: string) => t.trim().toLowerCase()).filter(Boolean)
-      for (const name of tagNames) {
-        const slug = name.replace(/\s+/g, '-')
-        let tag = await prisma.tag.findUnique({ where: { slug } })
-        if (!tag) tag = await prisma.tag.create({ data: { name, slug } })
-        await prisma.resourceTag.create({ data: { resourceId: resource.id, tagId: tag.id } }).catch(() => {})
-      }
-    }
+    if (tags) await upsertTags(tags, resource.id, prisma)
 
     return NextResponse.json({ resource }, { status: 201 })
   } catch (err: unknown) {

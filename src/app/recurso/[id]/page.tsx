@@ -3,16 +3,17 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Download, BookOpen, Lock, ShoppingCart, Coffee, Clock, AlertTriangle, Loader2, Shield, Check } from 'lucide-react'
+import { ArrowLeft, Download, BookOpen, Lock, ShoppingCart, Clock, Loader2, Shield, Check, Sparkles, Edit3 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
+import { useCart } from '@/context/CartContext'
 import { formatClp, hasActivePromo } from '@/lib/utils'
 
 export default function ResourceDetail() {
   const params = useParams()
   const router = useRouter()
   const { user } = useAuth()
+  const { addItem, items: cartItems } = useCart()
   const [resource, setResource] = useState<any>(null)
-  const [dbResource, setDbResource] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState(false)
   const [imgError, setImgError] = useState(false)
@@ -34,58 +35,51 @@ export default function ResourceDetail() {
   }, [params.id])
 
   useEffect(() => {
-    if (!resource) return
-    const fetchDbResource = async () => {
-      try {
-        const res = await fetch(`/api/resources/${resource.id}/db`)
-        if (res.ok) {
-          const dbData = await res.json()
-          setDbResource(dbData)
-        }
-      } catch {}
+    if (resource && cartItems.some(i => i.id === resource.id)) {
+      setAddedToCart(true)
     }
-    fetchDbResource()
-  }, [resource])
+  }, [resource, cartItems])
+
+
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 size={32} className="animate-spin text-primary-500" /></div>
   if (!resource) return <div className="max-w-5xl mx-auto px-4 py-8"><p className="text-gray-500">Recurso no encontrado</p></div>
 
-  const { title, description, previewPath, filePath, priceClp, resourceType, courseId, promoFreeUntil, isFree } = resource
+  const { title, description, previewPath, filePath, editablePath, priceClp, resourceType, courseId, promoFreeUntil, isFree } = resource
   const promoActive = hasActivePromo(resource)
   const price = priceClp
 
-  const handleDownload = async () => {
+  const handleDownload = async (type?: string) => {
     if (!user) { router.push('/login'); return }
     setDownloading(true)
     try {
-      const res = await fetch(`/api/download/${resource.id}`)
+      const url = type ? `/api/download/${resource.id}?type=${type}` : `/api/download/${resource.id}`
+      const res = await fetch(url)
       if (res.status === 401) { router.push('/login'); return }
       if (res.status === 403) { alert('Debes comprar este recurso para descargarlo'); return }
       if (!res.ok) { const err = await res.json(); alert(err.error || 'Error al descargar'); return }
       const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
+      const blobUrl = URL.createObjectURL(blob)
+      const ext = type === 'editable' && editablePath ? '.' + editablePath.split('.').pop() : '.pdf'
       const a = document.createElement('a')
-      a.href = url
-      a.download = `${title.replace(/[^a-z0-9]+/gi, '-')}.pdf`
+      a.href = blobUrl
+      a.download = `${title.replace(/[^a-z0-9]+/gi, '-')}${ext}`
       document.body.appendChild(a); a.click(); document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      URL.revokeObjectURL(blobUrl)
     } catch { alert('Error de conexión al descargar') }
     finally { setDownloading(false) }
   }
 
+  const editableExt = editablePath ? editablePath.split('.').pop()?.toUpperCase() : null
+
   function handleAddToCart() {
     if (!user) { router.push('/login'); return }
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]')
-    const alreadyInCart = cart.some((i: any) => i.id === resource.id)
-    if (!alreadyInCart) {
-      cart.push({
-        id: resource.id,
-        title: resource.title,
-        priceClp: price,
-        courseName: resource.course?.name || '',
-      })
-      localStorage.setItem('cart', JSON.stringify(cart))
-    }
+    addItem({
+      id: resource.id,
+      title: resource.title,
+      priceClp: price,
+      courseName: resource.course?.name || '',
+    })
     setAddedToCart(true)
   }
 
@@ -97,7 +91,7 @@ export default function ResourceDetail() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="md:col-span-1">
-          <div className="aspect-[3/4] bg-gradient-to-br from-primary-100 via-accent-50 to-secondary-100 rounded-xl flex items-center justify-center overflow-hidden">
+          <div className="aspect-[3/4] bg-gradient-to-br from-primary-100 via-accent-50 to-secondary-100 rounded-2xl flex items-center justify-center overflow-hidden shadow-lg border border-gray-100">
             {previewPath !== '/previews/placeholder.svg' && !imgError ? (
               <img src={previewPath} alt={title} className="w-full h-full object-cover" onError={() => setImgError(true)} />
             ) : (
@@ -127,29 +121,10 @@ export default function ResourceDetail() {
             </div>
           )}
 
-          {dbResource && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <p className="text-xs text-gray-500">Descargas</p>
-                <p className="text-lg font-semibold text-gray-900">{dbResource.downloadsCount}</p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <p className="text-xs text-gray-500">Páginas</p>
-                <p className="text-lg font-semibold text-gray-900">{dbResource.pages || '-'}</p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <p className="text-xs text-gray-500">Formato</p>
-                <p className="text-lg font-semibold text-gray-900">{dbResource.format || 'PDF'}</p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <p className="text-xs text-gray-500">Nivel</p>
-                <p className="text-lg font-semibold text-gray-900">{dbResource.level || '-'}</p>
-              </div>
-            </div>
-          )}
+
 
           <div className="border-t border-gray-200 pt-6">
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-2xl p-6 border border-gray-200">
               {promoActive ? (
                 <div className="flex items-center justify-between mb-4">
                   <div>
@@ -166,57 +141,70 @@ export default function ResourceDetail() {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <p className="text-sm text-gray-500">Precio</p>
-                    <p className="text-xl font-bold text-green-600 flex items-center gap-2">
-                      <Coffee size={20} /> Gratuito
+                    <p className="text-xl font-bold text-emerald-600 flex items-center gap-2">
+                      <Sparkles size={20} /> Gratuito
                     </p>
                   </div>
+                  <span className="inline-flex items-center gap-1.5 text-emerald-700 font-bold bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 text-sm"><Sparkles size={14} /> Gratuito</span>
                 </div>
               ) : (
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <p className="text-sm text-gray-500">Precio</p>
-                    <p className="text-2xl font-bold text-primary-600">{formatClp(price)}</p>
+                    <p className="text-2xl font-bold text-indigo-600">{formatClp(price)}</p>
                   </div>
-                  <p className="text-xs text-gray-400 flex items-center gap-1">
-                    <Shield size={12} /> Pago seguro
-                  </p>
+                  <span className="inline-flex items-center gap-1.5 text-indigo-700 font-bold bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-200 text-sm">
+                    ${Number(price).toLocaleString('es-CL')} CLP
+                  </span>
                 </div>
               )}
 
               <div className="flex flex-col sm:flex-row gap-3">
                 {isFree || promoActive ? (
-                  <button
-                    onClick={handleDownload}
-                    disabled={downloading}
-                    className="btn-primary flex-1 inline-flex items-center justify-center gap-2"
-                  >
-                    {downloading ? (
-                      <Loader2 size={18} className="animate-spin" />
-                    ) : (
-                      <Download size={18} />
+                  <>
+                    <button
+                      onClick={() => handleDownload()}
+                      disabled={downloading}
+                      className="inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-bold text-white bg-primary-600 rounded-2xl hover:bg-primary-700 active:scale-[0.97] transition-all shadow-lg shadow-primary-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none flex-1"
+                    >
+                      {downloading ? (
+                        <Loader2 size={18} className="animate-spin" />
+                      ) : (
+                        <Download size={18} />
+                      )}
+                      {downloading ? 'Descargando...' : 'Descargar PDF'}
+                    </button>
+                    {editablePath && (
+                      <button
+                        onClick={() => handleDownload('editable')}
+                        disabled={downloading}
+                        className="inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-bold text-amber-700 bg-amber-50 border-2 border-amber-200 rounded-2xl hover:bg-amber-100 active:scale-[0.97] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex-1"
+                      >
+                        <Edit3 size={18} />
+                        Descargar {editableExt || 'Editable'}
+                      </button>
                     )}
-                    {downloading ? 'Descargando...' : 'Descargar PDF'}
-                  </button>
+                  </>
                 ) : (
                   <>
                     {addedToCart ? (
                       <Link
                         href="/carrito"
-                        className="btn-primary flex-1 inline-flex items-center justify-center gap-2"
+                        className="inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-bold text-white bg-primary-600 rounded-2xl hover:bg-primary-700 active:scale-[0.97] transition-all shadow-lg shadow-primary-200 flex-1"
                       >
                         <ShoppingCart size={18} /> Ir al carrito
                       </Link>
                     ) : (
                       <button
                         onClick={handleAddToCart}
-                        className="btn-primary flex-1 inline-flex items-center justify-center gap-2"
+                        className="inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-bold text-white bg-primary-600 rounded-2xl hover:bg-primary-700 active:scale-[0.97] transition-all shadow-lg shadow-primary-200 flex-1"
                       >
                         <ShoppingCart size={18} /> Agregar al carrito
                       </button>
                     )}
                     {addedToCart && (
-                      <div className="flex items-center gap-2 text-sm text-green-600 font-medium">
-                        <Check size={16} /> Agregado
+                      <div className="flex items-center justify-center gap-2 text-sm font-bold text-emerald-700 bg-emerald-50 px-4 py-3 rounded-2xl border border-emerald-200 flex-1">
+                        <Check size={16} /> Agregado al carrito
                       </div>
                     )}
                   </>
@@ -224,27 +212,22 @@ export default function ResourceDetail() {
               </div>
 
               {!isFree && !promoActive && (
-                <div className="mt-4 flex items-center gap-2 text-xs text-gray-400">
+                <div className="mt-4 flex items-center gap-2 text-xs text-gray-400 bg-white/60 rounded-xl px-4 py-2.5">
                   <Lock size={12} />
-                  <span>Recurso premium. Compra única, acceso vitalicio.</span>
+                  <span>Recurso premium. Pago único, acceso vitalicio.</span>
                 </div>
               )}
             </div>
           </div>
 
           {!user && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-2xl p-5 border border-blue-200 text-sm text-blue-700">
               <p>Inicia sesión para {isFree || promoActive ? 'descargar' : 'comprar'} este recurso.</p>
-              <Link href="/login" className="font-medium underline mt-1 inline-block">Iniciar sesión</Link>
+              <Link href="/login" className="font-semibold underline mt-1.5 inline-block">Iniciar sesión</Link>
             </div>
           )}
 
-          {promoFreeUntil && new Date(promoFreeUntil) > new Date() && (
-            <div className="flex items-center gap-2 text-sm bg-amber-50 border border-amber-200 rounded-lg p-3">
-              <AlertTriangle size={16} className="text-amber-500" />
-              <span className="text-amber-700 font-medium">Promoción: gratis hasta {new Date(promoFreeUntil).toLocaleDateString('es-CL')}</span>
-            </div>
-          )}
+
         </div>
       </div>
     </div>

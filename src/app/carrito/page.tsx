@@ -4,16 +4,10 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { Trash2, ShoppingBag, ArrowLeft, Percent, X } from 'lucide-react'
 import { formatClp } from '@/lib/utils'
-
-interface CartItem {
-  id: string
-  title: string
-  priceClp: number
-  courseName: string
-}
+import { useCart } from '@/context/CartContext'
 
 export default function CartPage() {
-  const [items, setItems] = useState<CartItem[]>([])
+  const { items, removeItem, subtotal, loading } = useCart()
   const [discountCode, setDiscountCode] = useState('')
   const [discount, setDiscount] = useState<number | null>(null)
   const [discountPercent, setDiscountPercent] = useState<number>(0)
@@ -21,10 +15,6 @@ export default function CartPage() {
   const [verifying, setVerifying] = useState(false)
 
   useEffect(() => {
-    const stored = localStorage.getItem('cart')
-    if (stored) {
-      try { setItems(JSON.parse(stored)) } catch {}
-    }
     const savedCode = sessionStorage.getItem('discountCode')
     const savedDiscount = sessionStorage.getItem('discountAmount')
     const savedPercent = sessionStorage.getItem('discountPercent')
@@ -35,10 +25,9 @@ export default function CartPage() {
     }
   }, [])
 
-  function removeItem(id: string) {
-    const updated = items.filter(i => i.id !== id)
-    setItems(updated)
-    localStorage.setItem('cart', JSON.stringify(updated))
+  function handleRemove(id: string) {
+    removeItem(id)
+    if (discount !== null) removeDiscount()
   }
 
   async function verifyCode() {
@@ -85,7 +74,6 @@ export default function CartPage() {
     sessionStorage.removeItem('discountPercent')
   }
 
-  const subtotal = items.reduce((sum, i) => sum + i.priceClp, 0)
   const total = discount ? Math.max(0, subtotal - discount) : subtotal
 
   if (items.length === 0) {
@@ -116,7 +104,7 @@ export default function CartPage() {
             </div>
             <div className="flex items-center gap-4">
               <span className="font-bold text-primary-600">{formatClp(item.priceClp)}</span>
-              <button onClick={() => removeItem(item.id)} className="text-gray-400 hover:text-red-600 transition-colors"><Trash2 size={18} /></button>
+              <button onClick={() => handleRemove(item.id)} className="text-gray-400 hover:text-red-600 transition-colors"><Trash2 size={18} /></button>
             </div>
           </div>
         ))}

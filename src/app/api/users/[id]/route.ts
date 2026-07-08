@@ -1,12 +1,13 @@
-import { NextResponse } from 'next/server'
-import { getSession, hashPassword } from '@/lib/auth'
+import { NextRequest, NextResponse } from 'next/server'
+import { requireAdmin, hashPassword } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { csrfCheck } from '@/lib/csrf'
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
-  const user = await getSession()
-  if (!user || user.role !== 'admin') {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+  const csrf = csrfCheck(request)
+  if (csrf) return csrf
+  const user = await requireAdmin()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   try {
     const body = await request.json()
@@ -41,11 +42,11 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
-  const user = await getSession()
-  if (!user || user.role !== 'admin') {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  const csrf = csrfCheck(request)
+  if (csrf) return csrf
+  const user = await requireAdmin()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   if (user.id === params.id) {
     return NextResponse.json({ error: 'No puedes eliminarte a ti mismo' }, { status: 400 })

@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 @layer base {
   body {
     @apply text-gray-800 antialiased;
@@ -40,6 +38,9 @@
   }
   .badge-orange {
     @apply badge bg-orange-100 text-orange-800;
+  }
+  .badge-red {
+    @apply badge bg-red-100 text-red-800;
   }
   .section-title {
     @apply text-2xl font-bold text-gray-900;

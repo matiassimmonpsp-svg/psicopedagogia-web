@@ -1,6 +1,8 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getSession } from '@/lib/auth'
+import { requireAdmin } from '@/lib/auth'
+import { upsertTags } from '@/lib/utils'
+import { csrfCheck } from '@/lib/csrf'
 
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   const resource = await prisma.resource.findUnique({
@@ -15,11 +17,11 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   return NextResponse.json({ resource })
 }
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
-  const user = await getSession()
-  if (!user || user.role !== 'admin') {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+  const csrf = csrfCheck(request)
+  if (csrf) return csrf
+  const user = await requireAdmin()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   try {
     const body = await request.json()
@@ -33,15 +35,15 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
 }
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
-  const user = await getSession()
-  if (!user || user.role !== 'admin') {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+  const csrf = csrfCheck(request)
+  if (csrf) return csrf
+  const user = await requireAdmin()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   try {
     const body = await request.json()
-    const { title, description, resourceType, courseId, areaId, subareaId, isFree, priceClp, tags, filePath, previewPath, promoFreeUntil } = body
+    const { title, description, resourceType, courseId, areaId, subareaId, isFree, priceClp, tags, filePath, editablePath, previewPath, promoFreeUntil } = body
 
     if (!title || !courseId || !areaId) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 })
@@ -64,6 +66,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     }
 
     if (filePath) updateData.filePath = filePath
+    if (editablePath !== undefined) updateData.editablePath = editablePath
     if (previewPath) updateData.previewPath = previewPath
     if (promoFreeUntil !== undefined) updateData.promoFreeUntil = promoFreeUntil
 
@@ -74,17 +77,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
     if (tags !== undefined) {
       await prisma.resourceTag.deleteMany({ where: { resourceId: resource.id } })
-      const tagNames = tags.split(',').map((t: string) => t.trim().toLowerCase()).filter(Boolean)
-      for (const name of tagNames) {
-        const slug = name.replace(/\s+/g, '-')
-        let tag = await prisma.tag.findUnique({ where: { slug } })
-        if (!tag) {
-          tag = await prisma.tag.create({ data: { name, slug } })
-        }
-        await prisma.resourceTag.create({
-          data: { resourceId: resource.id, tagId: tag.id },
-        }).catch(() => {})
-      }
+      await upsertTags(tags, resource.id, prisma)
     }
 
     const updated = await prisma.resource.findUnique({
@@ -98,11 +91,11 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
-  const user = await getSession()
-  if (!user || user.role !== 'admin') {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  const csrf = csrfCheck(request)
+  if (csrf) return csrf
+  const user = await requireAdmin()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   try {
     await prisma.resourceTag.deleteMany({ where: { resourceId: params.id } })

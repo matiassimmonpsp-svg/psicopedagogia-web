@@ -1,34 +1,20 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useState } from 'react'
 import { ResourceCard } from '@/components/ResourceCard'
 import { courses, areas } from '@/lib/data'
-import type { Resource } from '@/lib/data'
+import { normalizeText, expandSearchQuery } from '@/lib/utils'
 import { Search, X } from 'lucide-react'
+import { useCatalog } from '@/lib/hooks'
 
 export default function CatalogoPage() {
-  const [allResources, setAllResources] = useState<Resource[]>([])
-  const [loading, setLoading] = useState(true)
+  const { resources: allResources, loading, refresh } = useCatalog()
 
   const [courseFilter, setCourseFilter] = useState<number | null>(null)
   const [areaFilter, setAreaFilter] = useState<number | null>(null)
   const [typeFilter, setTypeFilter] = useState<string | null>(null)
   const [priceFilter, setPriceFilter] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-
-  const fetchResources = useCallback(async () => {
-    setLoading(true)
-    try {
-      const res = await fetch('/api/catalog')
-      const data = await res.json()
-      setAllResources(data.resources || [])
-    } catch {
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => { fetchResources() }, [fetchResources])
 
   const hasFilters = courseFilter || areaFilter || typeFilter || priceFilter || searchQuery
 
@@ -39,10 +25,12 @@ export default function CatalogoPage() {
     if (priceFilter === 'free' && !r.isFree) return false
     if (priceFilter === 'premium' && r.isFree) return false
     if (searchQuery) {
-      const q = searchQuery.toLowerCase()
-      if (!r.title.toLowerCase().includes(q) &&
-          !r.description.toLowerCase().includes(q) &&
-          !r.tags.some(t => t.toLowerCase().includes(q))) return false
+      const queries = expandSearchQuery(normalizeText(searchQuery))
+      const nTitle = normalizeText(r.title)
+      const nDesc = normalizeText(r.description)
+      const nCourse = normalizeText(r.courseName || '')
+      const nTags = r.tags.map(t => normalizeText(t))
+      if (!queries.some(q => nTitle.includes(q) || nDesc.includes(q) || nCourse.includes(q) || nTags.some(t => t.includes(q)))) return false
     }
     return true
   })
@@ -188,7 +176,7 @@ export default function CatalogoPage() {
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-6">
-              {results.map(r => <ResourceCard key={r.id} resource={r} onUpdate={fetchResources} />)}
+              {results.map(r => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
             </div>
           )}
         </div>

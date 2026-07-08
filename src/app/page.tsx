@@ -1,31 +1,15 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState, useCallback } from 'react'
 import { ArrowRight, BookOpen, Brain, Search, Shield } from 'lucide-react'
 import { ResourceCard } from '@/components/ResourceCard'
 import { SearchBar } from '@/components/SearchBar'
 import { InstagramWidget } from '@/components/InstagramWidget'
 import { courses, areas } from '@/lib/data'
-import type { Resource } from '@/lib/data'
+import { useCatalog } from '@/lib/hooks'
 
 export default function Home() {
-  const [resources, setResources] = useState<Resource[]>([])
-  const [loading, setLoading] = useState(true)
-
-  const fetchResources = useCallback(async () => {
-    setLoading(true)
-    try {
-      const res = await fetch('/api/catalog')
-      const data = await res.json()
-      setResources(data.resources || [])
-    } catch {
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => { fetchResources() }, [fetchResources])
+  const { resources, loading, refresh } = useCatalog()
 
   const featuredResources = resources.filter(r => r.isFree).slice(0, 4)
   const premiumResources = resources.filter(r => !r.isFree).slice(0, 4)
@@ -117,7 +101,7 @@ export default function Home() {
                 <Link href="/buscar?gratis=true" className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">Ver todos <ArrowRight size={14} /></Link>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-                {featuredResources.map(r => <ResourceCard key={r.id} resource={r} onUpdate={fetchResources} />)}
+                {featuredResources.map(r => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
               </div>
             </section>
           )}
@@ -130,7 +114,7 @@ export default function Home() {
                   <Link href="/buscar?premium=true" className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">Ver todos <ArrowRight size={14} /></Link>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {premiumResources.map(r => <ResourceCard key={r.id} resource={r} onUpdate={fetchResources} />)}
+                  {premiumResources.map(r => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
                 </div>
               </div>
             </section>

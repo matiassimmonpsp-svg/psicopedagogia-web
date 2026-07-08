@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
-import { getSession } from '@/lib/auth'
+import { requireAdmin } from '@/lib/auth'
+import { csrfCheck } from '@/lib/csrf'
 
 const ALLOWED_TYPES: Record<string, string[]> = {
   pdf: ['.pdf', '.docx', '.pptx'],
@@ -26,11 +27,12 @@ function validateMagicBytes(buffer: ArrayBuffer, ext: string): boolean {
   return signatures.some(sig => sig.every((b, i) => b === header[i]))
 }
 
-export async function POST(request: Request) {
-  const user = await getSession()
-  if (!user || user.role !== 'admin') {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+export async function POST(request: NextRequest) {
+  const csrf = csrfCheck(request)
+  if (csrf) return csrf
+
+  const user = await requireAdmin()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   try {
     const formData = await request.formData()
@@ -67,13 +69,13 @@ export async function POST(request: Request) {
     const name = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`
 
     if (type === 'preview') {
-      const dir = path.join(process.cwd(), 'public', 'uploads', 'previews')
+      const dir = path.join(process.cwd(), 'private', 'uploads', 'previews')
       await mkdir(dir, { recursive: true })
       const filepath = path.join(dir, name)
       await writeFile(filepath, buffer)
 
       return NextResponse.json({
-        url: `/uploads/previews/${name}`,
+        url: `/api/preview/${name}`,
         name: file.name,
       })
     }

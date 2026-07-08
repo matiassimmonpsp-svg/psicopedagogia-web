@@ -4,7 +4,15 @@ const nextConfig = {
     remotePatterns: [
       { protocol: 'https', hostname: '**' }
     ]
-  }
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/uploads/previews/:name',
+        destination: '/api/preview/:name',
+      },
+    ]
+  },
 }
 
 module.exports = nextConfig

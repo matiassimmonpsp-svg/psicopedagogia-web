@@ -2,8 +2,8 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'
 import { prisma } from './prisma'
+const JWT_SECRET = process.env.JWT_SECRET!
 
-const JWT_SECRET = process.env.JWT_SECRET
 if (!JWT_SECRET) {
   throw new Error('JWT_SECRET no está definido en las variables de entorno')
 }
@@ -55,6 +55,12 @@ export async function createUser(name: string, email: string, password: string):
   })
 
   return { id: user.id, name: user.name, email: user.email, role: user.role }
+}
+
+export async function requireAdmin(): Promise<AuthUser | null> {
+  const user = await getSession()
+  if (!user || user.role !== 'admin') return null
+  return user
 }
 
 export async function authenticateUser(email: string, password: string): Promise<AuthUser> {

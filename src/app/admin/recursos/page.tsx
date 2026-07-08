@@ -1,38 +1,24 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
-import { Search, Eye, Edit, Trash2, PlusCircle, Pause, Play, X, Filter } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { Search, PlusCircle, X } from 'lucide-react'
 import Link from 'next/link'
-import type { Resource } from '@/lib/data'
 import { courses } from '@/lib/data'
+import ResourceTable from '@/components/ResourceTable'
+import { useCatalog } from '@/lib/hooks'
 
 export default function AdminResources() {
-  const [resources, setResources] = useState<Resource[]>([])
-  const [loading, setLoading] = useState(true)
+  const { resources, loading, refresh } = useCatalog()
   const [search, setSearch] = useState('')
   const [courseFilter, setCourseFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
-
-  async function fetchResources() {
-    try {
-      const res = await fetch('/api/catalog')
-      const data = await res.json()
-      setResources(data.resources || [])
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => { fetchResources() }, [])
 
   async function handleDelete(id: string, title: string) {
     if (!confirm(`¿Eliminar "${title}"? Esta acción no se puede deshacer.`)) return
     try {
       const res = await fetch(`/api/resources/${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Error al eliminar')
-      setResources(prev => prev.filter(r => r.id !== id))
+      refresh()
     } catch (err: any) {
       alert(err.message)
     }
@@ -46,7 +32,7 @@ export default function AdminResources() {
         body: JSON.stringify({ isActive: !(current ?? true) }),
       })
       if (!res.ok) throw new Error('Error')
-      setResources(prev => prev.map(r => r.id === id ? { ...r, isActive: !(r.isActive ?? true) } : r))
+      refresh()
     } catch {
       alert('Error al cambiar estado')
     }
@@ -121,62 +107,7 @@ export default function AdminResources() {
             {hasFilters ? 'No hay recursos que coincidan con los filtros.' : 'No hay recursos aún.'}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="text-left py-3 px-4 text-gray-500 font-medium">Título</th>
-                  <th className="text-left py-3 px-4 text-gray-500 font-medium">Curso</th>
-                  <th className="text-left py-3 px-4 text-gray-500 font-medium">Tipo</th>
-                  <th className="text-left py-3 px-4 text-gray-500 font-medium">Precio</th>
-                  <th className="text-left py-3 px-4 text-gray-500 font-medium">Descargas</th>
-                  <th className="text-left py-3 px-4 text-gray-500 font-medium">Estado</th>
-                  <th className="text-right py-3 px-4 text-gray-500 font-medium">Acción</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(r => (
-                  <tr key={r.id} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${r.isActive === false ? 'opacity-50' : ''}`}>
-                    <td className="py-3 px-4 font-medium text-gray-900 max-w-[250px] truncate">{r.title}</td>
-                    <td className="py-3 px-4 text-gray-500">{r.courseName}</td>
-                    <td className="py-3 px-4">
-                      <span className={`badge ${r.resourceType === 'educational' ? 'badge-blue' : 'badge-purple'}`}>
-                        {r.resourceType === 'educational' ? 'Material' : 'Evaluación'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-gray-500">{r.isFree ? 'Gratis' : `$${r.priceClp}`}</td>
-                    <td className="py-3 px-4 text-gray-500">{r.downloadsCount}</td>
-                    <td className="py-3 px-4">
-                      <button
-                        onClick={() => handleToggleActive(r.id, r.isActive)}
-                        className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full transition-colors ${
-                          r.isActive === false
-                            ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                            : 'bg-green-50 text-green-600 hover:bg-green-100'
-                        }`}
-                      >
-                        {r.isActive === false ? <Pause size={12} /> : <Play size={12} />}
-                        {r.isActive === false ? 'En pausa' : 'Activo'}
-                      </button>
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Link href={`/recurso/${r.id}`} className="p-1.5 text-gray-400 hover:text-primary-600 rounded hover:bg-primary-50 transition-colors" title="Ver">
-                          <Eye size={14} />
-                        </Link>
-                        <Link href={`/admin/editar-recurso/${r.id}`} className="p-1.5 text-gray-400 hover:text-amber-600 rounded hover:bg-amber-50 transition-colors" title="Editar">
-                          <Edit size={14} />
-                        </Link>
-                        <button onClick={() => handleDelete(r.id, r.title)} className="p-1.5 text-gray-400 hover:text-red-600 rounded hover:bg-red-50 transition-colors" title="Eliminar">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ResourceTable resources={filtered} onDelete={handleDelete} showStatus onToggleActive={handleToggleActive} />
         )}
       </div>
 

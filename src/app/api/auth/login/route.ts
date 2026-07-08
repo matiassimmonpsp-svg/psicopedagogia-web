@@ -1,14 +1,18 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { authenticateUser, signToken } from '@/lib/auth'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { csrfCheck } from '@/lib/csrf'
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const csrf = csrfCheck(request)
+  if (csrf) return csrf
+
   try {
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
       || request.headers.get('x-real-ip')
       || '127.0.0.1'
 
-    const { allowed, remaining } = checkRateLimit(ip)
+    const { allowed } = checkRateLimit(ip)
     if (!allowed) {
       return NextResponse.json({ error: 'Demasiados intentos. Intenta de nuevo en 1 minuto' }, { status: 429 })
     }

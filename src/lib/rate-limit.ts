@@ -1,26 +1,23 @@
-const attempts = new Map<string, { count: number; resetAt: number }>()
+const store = new Map<string, { count: number; resetAt: number }>()
 
-const MAX_ATTEMPTS = 5
-const WINDOW_MS = 60_000
-const BLOCK_MS = 60_000
-
-export function checkRateLimit(ip: string): { allowed: boolean; remaining: number } {
+export function checkRateLimit(key: string, maxAttempts: number = 5, windowMs: number = 60_000): {
+  allowed: boolean
+  remaining: number
+  resetAt: number
+} {
   const now = Date.now()
-  const entry = attempts.get(ip)
+  const entry = store.get(key)
 
   if (!entry || now > entry.resetAt) {
-    attempts.set(ip, { count: 1, resetAt: now + WINDOW_MS })
-    return { allowed: true, remaining: MAX_ATTEMPTS - 1 }
-  }
-
-  if (entry.count >= MAX_ATTEMPTS) {
-    if (now > entry.resetAt + BLOCK_MS) {
-      attempts.set(ip, { count: 1, resetAt: now + WINDOW_MS })
-      return { allowed: true, remaining: MAX_ATTEMPTS - 1 }
-    }
-    return { allowed: false, remaining: 0 }
+    store.set(key, { count: 1, resetAt: now + windowMs })
+    return { allowed: true, remaining: maxAttempts - 1, resetAt: now + windowMs }
   }
 
   entry.count++
-  return { allowed: true, remaining: MAX_ATTEMPTS - entry.count }
+
+  if (entry.count > maxAttempts) {
+    return { allowed: false, remaining: 0, resetAt: entry.resetAt }
+  }
+
+  return { allowed: true, remaining: maxAttempts - entry.count, resetAt: entry.resetAt }
 }

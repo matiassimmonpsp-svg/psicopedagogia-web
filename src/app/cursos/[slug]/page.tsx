@@ -1,38 +1,26 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState, useCallback } from 'react'
+import { useMemo } from 'react'
 import { notFound } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { ResourceCard } from '@/components/ResourceCard'
 import { courses, areas, subareas, getCourseBySlug } from '@/lib/data'
-import type { Resource, Area, Subarea } from '@/lib/data'
+import type { Subarea } from '@/lib/data'
+import { useCatalog } from '@/lib/hooks'
 
 function getSubareasByArea(areaId: number): Subarea[] {
   return subareas.filter(s => s.areaId === areaId)
 }
 
 export default function CoursePage({ params, searchParams }: { params: { slug: string }; searchParams: { area?: string; subarea?: string } }) {
-  const [resources, setResources] = useState<Resource[]>([])
-  const [loading, setLoading] = useState(true)
-
   const course = getCourseBySlug(params.slug)
+  const { resources: allCatalog, loading, refresh } = useCatalog()
 
-  const fetchResources = useCallback(async () => {
-    if (!course) return
-    setLoading(true)
-    try {
-      const res = await fetch('/api/catalog')
-      const data = await res.json()
-      const all: Resource[] = data.resources || []
-      setResources(all.filter((r: Resource) => r.courseName?.toLowerCase() === course.name?.toLowerCase()))
-    } catch {
-    } finally {
-      setLoading(false)
-    }
-  }, [course])
-
-  useEffect(() => { fetchResources() }, [fetchResources])
+  const resources = useMemo(() => {
+    if (!course) return []
+    return allCatalog.filter(r => r.courseName?.toLowerCase() === course.name?.toLowerCase())
+  }, [allCatalog, course])
 
   if (!course) notFound()
 
@@ -90,7 +78,7 @@ export default function CoursePage({ params, searchParams }: { params: { slug: s
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-          {filteredResources.map(r => <ResourceCard key={r.id} resource={r} onUpdate={fetchResources} />)}
+          {filteredResources.map(r => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
         </div>
       )}
     </div>

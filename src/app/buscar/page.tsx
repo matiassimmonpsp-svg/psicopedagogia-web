@@ -1,40 +1,33 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
 import { SearchBar } from '@/components/SearchBar'
 import { ResourceCard } from '@/components/ResourceCard'
 import { areas } from '@/lib/data'
 import type { Resource } from '@/lib/data'
+import { normalizeText, expandSearchQuery } from '@/lib/utils'
+import { useCatalog } from '@/lib/hooks'
 
 export default function SearchPage({ searchParams }: { searchParams: { q?: string; area?: string; gratis?: string; premium?: string } }) {
-  const [allResources, setAllResources] = useState<Resource[]>([])
-  const [loading, setLoading] = useState(true)
-
-  const fetchResources = useCallback(async () => {
-    setLoading(true)
-    try {
-      const res = await fetch('/api/catalog')
-      const data = await res.json()
-      setAllResources(data.resources || [])
-    } catch {
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => { fetchResources() }, [fetchResources])
+  const { resources: allResources, loading, refresh } = useCatalog()
 
   const query = searchParams.q || ''
   const areaFilter = searchParams.area
   const gratisFilter = searchParams.gratis === 'true'
   const premiumFilter = searchParams.premium === 'true'
 
+  const queries = query ? expandSearchQuery(normalizeText(query)) : []
+
   let results = query
-    ? allResources.filter(r =>
-        r.title.toLowerCase().includes(query.toLowerCase()) ||
-        r.description.toLowerCase().includes(query.toLowerCase()) ||
-        r.tags.some(t => t.toLowerCase().includes(query.toLowerCase()))
-      )
+    ? allResources.filter(r => {
+        const nTitle = normalizeText(r.title)
+        const nDesc = normalizeText(r.description)
+        const nCourse = normalizeText(r.courseName || '')
+        const nTags = r.tags.map(t => normalizeText(t))
+        return queries.some(q =>
+          nTitle.includes(q) || nDesc.includes(q) || nCourse.includes(q) ||
+          nTags.some(t => t.includes(q))
+        )
+      })
     : allResources
 
   let suggestions: Resource[] = []
@@ -92,14 +85,14 @@ export default function SearchPage({ searchParams }: { searchParams: { q?: strin
             <>
               {query && <h2 className="section-title mb-4">Resultados</h2>}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-                {results.map(r => <ResourceCard key={r.id} resource={r} onUpdate={fetchResources} />)}
+                {results.map(r => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
               </div>
 
               {suggestions.length > 0 && (
                 <>
                   <h2 className="section-title mt-12 mb-4">Te puede interesar</h2>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {suggestions.map(r => <ResourceCard key={r.id} resource={r} onUpdate={fetchResources} />)}
+                    {suggestions.map(r => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
                   </div>
                 </>
               )}
