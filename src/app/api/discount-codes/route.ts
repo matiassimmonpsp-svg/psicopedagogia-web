@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json({ code: nuevo }, { status: 201 })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Error al crear código' }, { status: 500 })
   }
 }

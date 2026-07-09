@@ -15,8 +15,8 @@ export default function AdminDashboard() {
       const res = await fetch(`/api/resources/${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Error al eliminar')
       refresh()
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Error al eliminar')
     }
   }
 

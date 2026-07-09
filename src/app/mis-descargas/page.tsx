@@ -46,9 +46,10 @@ export default function DownloadsPage() {
     setDownloadingId(item.id)
     try {
       await downloadFile(`/api/download/${item.resourceId}`, `${item.title.replace(/[^a-z0-9]+/gi, '-')}.pdf`)
-    } catch (err: any) {
-      if (err.message === 'No autorizado') { router.push('/login'); return }
-      toast.error(err.message || 'Error de conexión')
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : ''
+      if (message === 'No autorizado') { router.push('/login'); return }
+      toast.error(message || 'Error de conexión')
     } finally { setDownloadingId(null) }
   }
 

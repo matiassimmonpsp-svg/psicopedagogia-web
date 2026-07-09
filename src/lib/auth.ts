@@ -15,6 +15,15 @@ export interface AuthUser {
   role: string
 }
 
+/** Valida que la contraseña cumpla requisitos mínimos. Devuelve null si es válida, o un string con el error. */
+export function validatePassword(password: string): string | null {
+  if (password.length < 8) return 'La contraseña debe tener al menos 8 caracteres'
+  if (!/[A-Z]/.test(password)) return 'La contraseña debe contener al menos una mayúscula'
+  if (!/[a-z]/.test(password)) return 'La contraseña debe contener al menos una minúscula'
+  if (!/[0-9]/.test(password)) return 'La contraseña debe contener al menos un número'
+  return null
+}
+
 /** Hashea una contraseña con bcrypt */
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, SALT_ROUNDS)
@@ -70,6 +79,9 @@ export async function getSession(): Promise<AuthUser | null> {
 
 /** Crea un nuevo usuario en la BD */
 export async function createUser(name: string, email: string, password: string): Promise<AuthUser> {
+  const passwordError = validatePassword(password)
+  if (passwordError) throw new Error(passwordError)
+
   const existente = await prisma.user.findUnique({ where: { email } })
   if (existente) throw new Error('El correo ya está registrado')
 

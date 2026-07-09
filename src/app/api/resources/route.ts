@@ -7,15 +7,18 @@ import { csrfCheck } from '@/lib/csrf'
 
 /* Resuelve IDs del mock data a IDs reales en BD */
 const resolver = (prismaModel: string, mockDataKey: string) => async (mockId: number) => {
-  const mock = await import('@/lib/data')
-  const entries: any[] = (mock as any)[mockDataKey]
-  const item = entries.find((e: any) => e.id === mockId)
+  const mock = await import('@/lib/data') as Record<string, unknown>
+  const mockModule = mock as Record<string, Array<{ id: number; slug?: string }>>
+  const entries = mockModule[mockDataKey] || []
+  const item = entries.find(e => e.id === mockId)
   if (!item) return null
-  const existente = await (prisma as any)[prismaModel]?.findUnique({ where: { id: mockId } })
+  const model = (prisma as unknown as Record<string, Record<string, (args: Record<string, unknown>) => Promise<{ id: number }>>>)[prismaModel]
+  if (!model) return null
+  const existente = await model.findUnique({ where: { id: mockId } })
   if (existente) return existente.id
-  const porSlug = await (prisma as any)[prismaModel]?.findFirst({ where: { slug: item.slug } })
+  const porSlug = await model.findFirst({ where: { slug: item.slug } })
   if (porSlug) return porSlug.id
-  const creado = await (prisma as any)[prismaModel].create({ data: { id: item.id, ...item } })
+  const creado = await model.create({ data: { ...item, id: item.id } })
   return creado.id
 }
 

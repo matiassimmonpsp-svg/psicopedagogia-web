@@ -75,8 +75,8 @@ export async function POST(request: NextRequest) {
     await prisma.order.deleteMany({ where: { userId: user.id, status: 'cart' } })
 
     return NextResponse.json({ success: true, orderId: order.id })
-  } catch (err: any) {
-    console.error('Error en checkout:', err.message)
+  } catch (err: unknown) {
+    console.error('Error en checkout:', err instanceof Error ? err.message : err)
     return NextResponse.json({ error: 'Error al procesar el pago' }, { status: 500 })
   }
 }

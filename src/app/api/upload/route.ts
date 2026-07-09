@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     const url = `/${subdir.replace('private/', '')}/${filename}`
 
     return NextResponse.json({ url })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Error al subir' }, { status: 500 })
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Error al subir' }, { status: 500 })
   }
 }

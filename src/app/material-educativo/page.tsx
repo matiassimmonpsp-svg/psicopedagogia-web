@@ -2,11 +2,12 @@
 
 import { ResourceCard } from '@/components/ResourceCard'
 import { useCatalog } from '@/lib/hooks'
+import type { CatalogResource } from '@/lib/data'
 
 export default function EducationalMaterialPage() {
   const { resources: allResources, loading, refresh } = useCatalog()
 
-  const materials = allResources.filter((r: any) => r.resourceType === 'educational')
+  const materials = allResources.filter((r: CatalogResource) => r.resourceType === 'educational')
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -23,7 +24,7 @@ export default function EducationalMaterialPage() {
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-          {materials.map((r: any) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
+          {materials.map((r: CatalogResource) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
         </div>
       )}
     </div>

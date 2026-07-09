@@ -56,6 +56,14 @@ export interface SocialPost {
   postedAt: string
 }
 
+/** Resource shape returned by /api/catalog (includes slugs for filtering) */
+export interface CatalogResource extends Resource {
+  courseSlug?: string
+  areaSlug?: string
+  subareaSlug?: string
+  source?: 'db' | 'mock'
+}
+
 // --- Mock Data ---
 
 export const courses: Course[] = [

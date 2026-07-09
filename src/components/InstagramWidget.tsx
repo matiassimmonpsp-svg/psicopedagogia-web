@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { ExternalLink, Instagram } from 'lucide-react'
 import type { SocialPost } from '@/lib/data'
 
-const INSTAGRAM_USER = process.env.NEXT_PUBLIC_INSTAGRAM_USER || 'sii.mmon'
+const INSTAGRAM_USER = process.env.NEXT_PUBLIC_INSTAGRAM_USER || 'siimon.psp'
 
 export function InstagramWidget() {
   const [posts, setPosts] = useState<SocialPost[]>([])

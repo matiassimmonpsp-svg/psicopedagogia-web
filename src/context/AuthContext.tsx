@@ -1,6 +1,8 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
+import { useRouter } from 'next/navigation'
+import toast from 'react-hot-toast'
 import type { AuthUser } from '@/lib/auth'
 
 interface AuthContextType {
@@ -17,6 +19,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   const refresh = useCallback(async () => {
     try {
@@ -69,9 +72,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' })
-    setUser(null)
-    window.location.href = '/'
+    try {
+      const res = await fetch('/api/auth/logout', { method: 'POST' })
+      if (!res.ok) {
+        toast.error('Error al cerrar sesión')
+        return
+      }
+
+      // Verificar que la sesión se cerró realmente
+      const meRes = await fetch('/api/auth/me')
+      const meData = await meRes.json()
+
+      if (meData.user) {
+        // Si aún devuelve usuario, algo falló
+        toast.error('No se pudo cerrar la sesión completamente')
+        return
+      }
+
+      setUser(null)
+      toast.success('Sesión cerrada')
+      router.push('/')
+    } catch {
+      toast.error('Error de conexión al cerrar sesión')
+    }
   }
 
   return (

@@ -25,8 +25,9 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json({ user, token }, { status: 201 })
-  } catch (err: any) {
-    const status = err.message === 'El correo ya está registrado' ? 409 : 500
-    return NextResponse.json({ error: err.message }, { status })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error desconocido'
+    const status = message === 'El correo ya está registrado' ? 409 : 500
+    return NextResponse.json({ error: message }, { status })
   }
 }

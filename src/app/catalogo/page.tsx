@@ -2,10 +2,12 @@
 
 import { useState } from 'react'
 import { ResourceCard } from '@/components/ResourceCard'
-import { courses, areas } from '@/lib/data'
+import { courses, areas, type CatalogResource } from '@/lib/data'
 import { normalizeText, expandSearchQuery } from '@/lib/utils'
-import { Search, X } from 'lucide-react'
+import { Search, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCatalog } from '@/lib/hooks'
+
+const ITEMS_PER_PAGE = 12
 
 export default function CatalogoPage() {
   const { resources: allResources, loading, refresh } = useCatalog()
@@ -15,10 +17,11 @@ export default function CatalogoPage() {
   const [typeFilter, setTypeFilter] = useState<string | null>(null)
   const [priceFilter, setPriceFilter] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
 
   const hasFilters = courseSlug || areaSlug || typeFilter || priceFilter || searchQuery
 
-  const results = allResources.filter((r: any) => {
+  const results = allResources.filter((r: CatalogResource) => {
     if (courseSlug && r.courseSlug !== courseSlug) return false
     if (areaSlug && r.areaSlug !== areaSlug) return false
     if (typeFilter && r.resourceType !== typeFilter) return false
@@ -35,12 +38,16 @@ export default function CatalogoPage() {
     return true
   })
 
+  const totalPages = Math.ceil(results.length / ITEMS_PER_PAGE)
+  const paginatedResults = results.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+
   function clearFilters() {
     setCourseSlug(null)
     setAreaSlug(null)
     setTypeFilter(null)
     setPriceFilter(null)
     setSearchQuery('')
+    setCurrentPage(1)
   }
 
   const activeFilterCount = [courseSlug, areaSlug, typeFilter, priceFilter].filter(Boolean).length
@@ -62,7 +69,10 @@ export default function CatalogoPage() {
               <input
                 type="text"
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                onChange={e => {
+                  setSearchQuery(e.target.value)
+                  setCurrentPage(1)
+                }}
                 placeholder="Título, descripción o tag..."
                 className="input w-full text-sm"
               />
@@ -74,7 +84,10 @@ export default function CatalogoPage() {
                 {courses.map(c => (
                   <button
                     key={c.slug}
-                    onClick={() => setCourseSlug(courseSlug === c.slug ? null : c.slug)}
+                    onClick={() => {
+                      setCourseSlug(courseSlug === c.slug ? null : c.slug)
+                      setCurrentPage(1)
+                    }}
                     className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors ${
                       courseSlug === c.slug ? 'bg-primary-100 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-50'
                     }`}
@@ -91,7 +104,10 @@ export default function CatalogoPage() {
                 {areas.map(a => (
                   <button
                     key={a.slug}
-                    onClick={() => setAreaSlug(areaSlug === a.slug ? null : a.slug)}
+                    onClick={() => {
+                      setAreaSlug(areaSlug === a.slug ? null : a.slug)
+                      setCurrentPage(1)
+                    }}
                     className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors ${
                       areaSlug === a.slug ? 'bg-secondary-100 text-secondary-700 font-medium' : 'text-gray-600 hover:bg-gray-50'
                     }`}
@@ -111,7 +127,10 @@ export default function CatalogoPage() {
                 ].map(t => (
                   <button
                     key={t.value}
-                    onClick={() => setTypeFilter(typeFilter === t.value ? null : t.value)}
+                    onClick={() => {
+                      setTypeFilter(typeFilter === t.value ? null : t.value)
+                      setCurrentPage(1)
+                    }}
                     className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                       typeFilter === t.value ? 'bg-accent-100 text-accent-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
@@ -131,7 +150,10 @@ export default function CatalogoPage() {
                 ].map(p => (
                   <button
                     key={p.value}
-                    onClick={() => setPriceFilter(priceFilter === p.value ? null : p.value)}
+                    onClick={() => {
+                      setPriceFilter(priceFilter === p.value ? null : p.value)
+                      setCurrentPage(1)
+                    }}
                     className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                       priceFilter === p.value ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
@@ -175,9 +197,42 @@ export default function CatalogoPage() {
               <p className="text-gray-400 text-sm mt-1">Intenta cambiando los filtros</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-6">
-              {results.map((r: any) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
-            </div>
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-6">
+                {paginatedResults.map((r: CatalogResource) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
+              </div>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-8">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+                        currentPage === page
+                          ? 'bg-primary-600 text-white'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

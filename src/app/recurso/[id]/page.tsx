@@ -57,9 +57,10 @@ export default function ResourceDetail() {
       const url = type ? `/api/download/${resource.id}?type=${type}` : `/api/download/${resource.id}`
       const ext = type === 'editable' && editablePath ? '.' + editablePath.split('.').pop() : '.pdf'
       await downloadFile(url, `${title.replace(/[^a-z0-9]+/gi, '-')}${ext}`)
-    } catch (err: any) {
-      if (err.message?.includes('Debes comprar')) { toast.error(err.message); return }
-      if (err.message) { toast.error(err.message); return }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : ''
+      if (message.includes('Debes comprar')) { toast.error(message); return }
+      if (message) { toast.error(message); return }
       toast.error('Error de conexión al descargar')
     } finally { setDownloading(false) }
   }

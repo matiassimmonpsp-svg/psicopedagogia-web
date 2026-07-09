@@ -2,11 +2,14 @@
 
 import Link from 'next/link'
 import { useState, FormEvent } from 'react'
+import { useRouter } from 'next/navigation'
 import { BookOpen } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { useAuth } from '@/context/AuthContext'
 
 export default function RegisterPage() {
   const { register } = useAuth()
+  const router = useRouter()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -20,14 +23,31 @@ export default function RegisterPage() {
       setError('Todos los campos son obligatorios.')
       return
     }
-    if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres.')
+    if (password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres.')
+      return
+    }
+    if (!/[A-Z]/.test(password)) {
+      setError('La contraseña debe contener al menos una mayúscula.')
+      return
+    }
+    if (!/[a-z]/.test(password)) {
+      setError('La contraseña debe contener al menos una minúscula.')
+      return
+    }
+    if (!/[0-9]/.test(password)) {
+      setError('La contraseña debe contener al menos un número.')
       return
     }
     setLoading(true)
     const err = await register(name, email, password)
     setLoading(false)
-    if (err) setError(err)
+    if (err) {
+      setError(err)
+    } else {
+      toast.success('¡Cuenta creada con éxito!')
+      router.push('/')
+    }
   }
 
   return (
@@ -49,7 +69,8 @@ export default function RegisterPage() {
           </div>
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
-            <input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} className="input-field" placeholder="Mínimo 6 caracteres" />
+            <input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} className="input-field" placeholder="Mínimo 8 caracteres" />
+            <p className="text-xs text-gray-400 mt-1">Mínimo 8 caracteres, una mayúscula, una minúscula y un número</p>
           </div>
           {error && <p className="text-red-600 text-sm">{error}</p>}
           <button type="submit" disabled={loading} className="btn-primary w-full disabled:opacity-50">

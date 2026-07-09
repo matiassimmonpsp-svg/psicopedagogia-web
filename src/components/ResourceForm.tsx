@@ -85,8 +85,8 @@ export default function ResourceForm({ mode, resourceId }: ResourceFormProps) {
         setExistingEditablePath(r.editablePath || null)
         setExistingPreviewPath(r.previewPath || '/previews/placeholder.svg')
         setPreviewUrl(r.previewPath || '')
-      } catch (err: any) {
-        toast.error(err.message)
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : 'Error al cargar recurso')
         router.push('/admin')
       } finally {
         setFetching(false)
@@ -132,6 +132,9 @@ export default function ResourceForm({ mode, resourceId }: ResourceFormProps) {
     setLoading(true)
     setSuccess(false)
 
+    // El title ya tiene el sufijo del curso del onBlur
+    const finalTitle = title
+
     try {
       let uploadedPdfUrl = isEdit ? existingPdfPath : ''
       let uploadedEditableUrl = isEdit ? existingEditablePath : ''
@@ -164,7 +167,7 @@ export default function ResourceForm({ mode, resourceId }: ResourceFormProps) {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            title, description, resourceType, courseId, areaId, subareaId,
+            title: finalTitle, description, resourceType, courseId, areaId, subareaId,
             isFree, priceClp: price || null, tags: tags,
             filePath: pdfFile ? uploadedPdfUrl : undefined,
             editablePath: editableFile ? uploadedEditableUrl : (existingEditablePath !== null ? existingEditablePath : null),
@@ -192,7 +195,7 @@ export default function ResourceForm({ mode, resourceId }: ResourceFormProps) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            title, description, resourceType, courseId, areaId, subareaId,
+            title: finalTitle, description, resourceType, courseId, areaId, subareaId,
             isFree, priceClp: price || null, tags: tags,
             filePath: uploadedPdfUrl,
             editablePath: uploadedEditableUrl || null,
@@ -208,8 +211,8 @@ export default function ResourceForm({ mode, resourceId }: ResourceFormProps) {
           else router.push('/admin')
         }, 1500)
       }
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Error al guardar recurso')
     } finally {
       setLoading(false)
     }
@@ -370,18 +373,36 @@ export default function ResourceForm({ mode, resourceId }: ResourceFormProps) {
                   <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
                     <Type size={14} /> Título <span className="text-red-500">*</span>
                   </label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300">
-                      <Type size={16} />
-                    </span>
-                    <input
-                      type="text"
-                      value={title}
-                      onChange={e => setTitle(e.target.value)}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all"
-                      placeholder="Ej: Evaluación de Conciencia Fonológica - 1° Básico"
-                      required
-                    />
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-primary-500 focus-within:bg-white transition-all">
+                    <div className="flex items-center py-3 px-4">
+                      <span className="text-gray-300 shrink-0 mr-2">
+                        <Type size={16} />
+                      </span>
+                      <input
+                        type="text"
+                        value={title}
+                        onChange={e => setTitle(e.target.value)}
+                        onFocus={() => {
+                          if (!isEdit && selectedCourse) {
+                            const suffix = ` - ${selectedCourse.name}`
+                            if (title.endsWith(suffix)) {
+                              setTitle(title.slice(0, -suffix.length))
+                            }
+                          }
+                        }}
+                        onBlur={() => {
+                          if (!isEdit && selectedCourse && title.trim()) {
+                            const suffix = ` - ${selectedCourse.name}`
+                            if (!title.endsWith(suffix)) {
+                              setTitle(title.trim() + suffix)
+                            }
+                          }
+                        }}
+                        className="flex-1 min-w-0 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                        placeholder={isEdit ? "Título del recurso" : "Evaluación de Conciencia Fonológica"}
+                        required
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="space-y-1.5">
@@ -774,7 +795,7 @@ export default function ResourceForm({ mode, resourceId }: ResourceFormProps) {
                       <Edit3 size={12} /> Editar
                     </button>
                   </div>
-                  <p className="font-bold text-gray-900 text-sm mb-1">{title}</p>
+                  <p className="font-bold text-gray-900 text-sm mb-1">{title || '(Sin título)'}</p>
                   {!description ? (
                     <div className="flex items-center gap-1.5 text-amber-600 bg-amber-50 rounded-lg px-3 py-2 mb-3 border border-amber-200">
                       <AlertTriangle size={14} />
@@ -894,7 +915,7 @@ export default function ResourceForm({ mode, resourceId }: ResourceFormProps) {
                       </div>
                       <div className="p-4">
                         <p className="text-xs text-primary-600 font-medium mb-1">{selectedCourse?.name}</p>
-                        <h3 className="font-semibold text-gray-900 text-sm leading-tight mb-1 line-clamp-2 break-words">{title}</h3>
+                        <h3 className="font-semibold text-gray-900 text-sm leading-tight mb-1 line-clamp-2 break-words">{title || '(Sin título)'}</h3>
                         <p className="text-xs text-gray-500 mb-3 line-clamp-2 break-words">{description || 'Sin descripción'}</p>
                         <div className="flex flex-wrap gap-1 mb-3">
                           {tags.slice(0, 3).map(t => (

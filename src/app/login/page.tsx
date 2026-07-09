@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState, FormEvent, Suspense } from 'react'
 import { BookOpen } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { useAuth } from '@/context/AuthContext'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -26,6 +27,7 @@ function LoginForm() {
     const err = await login(email, password)
     setLoading(false)
     if (err) { setError(err); return }
+    toast.success('¡Bienvenido!')
     router.push(searchParams.get('callbackUrl') || searchParams.get('redirect') || '/')
   }
 

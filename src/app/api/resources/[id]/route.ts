@@ -30,8 +30,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       data: { isActive },
     })
     return NextResponse.json({ resource })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al actualizar'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
 
@@ -53,7 +54,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const existing = await prisma.resource.findUnique({ where: { id: params.id } })
     if (!existing) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
 
-    const data: any = {
+    const data: Record<string, unknown> = {
       title, description: description || '',
       resourceType: resourceType || 'evaluation',
       isFree: isFree ?? true,
@@ -78,8 +79,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       include: { course: true, area: true, subarea: true, tags: { include: { tag: true } } },
     })
     return NextResponse.json({ resource: updated })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Error al actualizar' }, { status: 500 })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al actualizar'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
 
@@ -114,7 +116,8 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     ])
 
     return NextResponse.json({ success: true })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al eliminar'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

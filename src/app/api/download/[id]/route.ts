@@ -97,7 +97,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         'Content-Length': buffer.length.toString(),
       },
     })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Error al descargar' }, { status: 500 })
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Error al descargar' }, { status: 500 })
   }
 }

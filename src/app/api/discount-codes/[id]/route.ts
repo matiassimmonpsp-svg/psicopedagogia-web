@@ -32,8 +32,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     const code = await prisma.discountCode.update({ where: { id: parseInt(params.id) }, data })
     return NextResponse.json({ code })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Error al actualizar código' }, { status: 500 })
   }
 }
 
@@ -47,7 +47,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   try {
     await prisma.discountCode.delete({ where: { id: parseInt(params.id) } })
     return NextResponse.json({ success: true })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Error al eliminar código' }, { status: 500 })
   }
 }

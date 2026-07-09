@@ -7,15 +7,15 @@ import { ArrowRight, BookOpen, Brain, Search, Shield } from 'lucide-react'
 import { ResourceCard } from '@/components/ResourceCard'
 import { SearchBar } from '@/components/SearchBar'
 import { InstagramWidget } from '@/components/InstagramWidget'
-import { courses, areas } from '@/lib/data'
+import { courses, areas, type CatalogResource } from '@/lib/data'
 import { useCatalog } from '@/lib/hooks'
 
 export default function Home() {
   const { resources, loading, refresh } = useCatalog()
   const [email, setEmail] = useState('')
 
-  const featuredResources = resources.filter((r: any) => r.isFree).slice(0, 4)
-  const premiumResources = resources.filter((r: any) => !r.isFree).slice(0, 4)
+  const featuredResources = resources.filter((r: CatalogResource) => r.isFree).slice(0, 4)
+  const premiumResources = resources.filter((r: CatalogResource) => !r.isFree).slice(0, 4)
 
   return (
     <>
@@ -104,7 +104,7 @@ export default function Home() {
                 <Link href="/buscar?gratis=true" className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">Ver todos <ArrowRight size={14} /></Link>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-                {featuredResources.map((r: any) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
+                {featuredResources.map((r: CatalogResource) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
               </div>
             </section>
           )}
@@ -117,7 +117,7 @@ export default function Home() {
                   <Link href="/buscar?premium=true" className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">Ver todos <ArrowRight size={14} /></Link>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {premiumResources.map((r: any) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
+                  {premiumResources.map((r: CatalogResource) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
                 </div>
               </div>
             </section>

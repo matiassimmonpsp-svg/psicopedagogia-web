@@ -29,8 +29,8 @@ export default function AdminUsuarios() {
       if (!res.ok) throw new Error('No autorizado')
       const data = await res.json()
       setUsers(data.users)
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al cargar usuarios')
     } finally {
       setLoading(false)
     }

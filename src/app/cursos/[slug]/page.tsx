@@ -5,12 +5,12 @@ import { useMemo } from 'react'
 import { notFound } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { ResourceCard } from '@/components/ResourceCard'
-import { courses, areas, subareas, getCourseBySlug } from '@/lib/data'
+import { courses, areas, subareas, getCourseBySlug, type CatalogResource } from '@/lib/data'
 import type { Subarea } from '@/lib/data'
 import { useCatalog } from '@/lib/hooks'
 
 function getSubareasByArea(areaId: number): Subarea[] {
-  return subareas.filter((s: any) => s.areaId === areaId)
+  return subareas.filter((s: Subarea) => s.areaId === areaId)
 }
 
 export default function CoursePage({ params, searchParams }: { params: { slug: string }; searchParams: { area?: string; subarea?: string } }) {
@@ -19,7 +19,7 @@ export default function CoursePage({ params, searchParams }: { params: { slug: s
 
   const resources = useMemo(() => {
     if (!course) return []
-    return allCatalog.filter((r: any) => r.courseSlug === course.slug)
+    return allCatalog.filter((r: CatalogResource) => r.courseSlug === course.slug)
   }, [allCatalog, course])
 
   if (!course) notFound()
@@ -28,10 +28,10 @@ export default function CoursePage({ params, searchParams }: { params: { slug: s
   const selectedSubareaSlug = searchParams.subarea
   const selectedArea = selectedAreaSlug ? areas.find(a => a.slug === selectedAreaSlug) : null
   const selectedSubarea = selectedSubareaSlug && selectedArea
-    ? subareas.find((s: any) => s.slug === selectedSubareaSlug && s.areaId === selectedArea.id)
+    ? subareas.find((s: Subarea) => s.slug === selectedSubareaSlug && s.areaId === selectedArea.id)
     : null
 
-  const filteredResources = resources.filter((r: any) => {
+  const filteredResources = resources.filter((r: CatalogResource) => {
     if (selectedAreaSlug && r.areaSlug !== selectedAreaSlug) return false
     if (selectedSubareaSlug && r.subareaSlug !== selectedSubareaSlug) return false
     return true
@@ -62,7 +62,7 @@ export default function CoursePage({ params, searchParams }: { params: { slug: s
           <Link href={`/cursos/${course.slug}?area=${selectedArea.slug}`} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${!selectedSubarea ? 'bg-accent-100 text-accent-800' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
             Todas las subáreas
           </Link>
-          {getSubareasByArea(selectedArea.id).map((s: any) => (
+          {getSubareasByArea(selectedArea.id).map((s: Subarea) => (
             <Link key={s.id} href={`/cursos/${course.slug}?area=${selectedArea.slug}&subarea=${s.slug}`} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedSubarea?.id === s.id ? 'bg-accent-100 text-accent-800' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
               {s.name}
             </Link>
@@ -80,7 +80,7 @@ export default function CoursePage({ params, searchParams }: { params: { slug: s
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-          {filteredResources.map((r: any) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
+          {filteredResources.map((r: CatalogResource) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
         </div>
       )}
     </div>

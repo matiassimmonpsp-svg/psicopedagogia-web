@@ -22,8 +22,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       select: { id: true, name: true, email: true, role: true },
     })
     return NextResponse.json({ user })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al actualizar'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
 
@@ -42,7 +43,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return PUT(request, { params })
     }
 
-    const data: any = {}
+    const data: { name?: string; email?: string; passwordHash?: string } = {}
     if (body.name) data.name = body.name
     if (body.email) data.email = body.email
     if (body.password) data.passwordHash = await bcrypt.hash(body.password, 10)
@@ -53,8 +54,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       select: { id: true, name: true, email: true, role: true },
     })
     return NextResponse.json({ user })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al actualizar'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
 
@@ -68,7 +70,8 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   try {
     await prisma.user.delete({ where: { id: params.id } })
     return NextResponse.json({ success: true })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al eliminar'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
