@@ -165,7 +165,7 @@ export default function ResourceForm({ mode, resourceId }: ResourceFormProps) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title, description, resourceType, courseId, areaId, subareaId,
-            isFree, priceClp: price || null, tags: tagsInput,
+            isFree, priceClp: price || null, tags: tags,
             filePath: pdfFile ? uploadedPdfUrl : undefined,
             editablePath: editableFile ? uploadedEditableUrl : (existingEditablePath !== null ? existingEditablePath : null),
             previewPath: previewFile ? uploadedPreviewUrl : undefined,
@@ -193,7 +193,7 @@ export default function ResourceForm({ mode, resourceId }: ResourceFormProps) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title, description, resourceType, courseId, areaId, subareaId,
-            isFree, priceClp: price || null, tags: tagsInput,
+            isFree, priceClp: price || null, tags: tags,
             filePath: uploadedPdfUrl,
             editablePath: uploadedEditableUrl || null,
             previewPath: uploadedPreviewUrl || '/previews/placeholder.svg',
@@ -327,23 +327,23 @@ export default function ResourceForm({ mode, resourceId }: ResourceFormProps) {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-gray-700">Curso <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Curso <span className="text-red-400">*</span></label>
                   <select value={courseId} onChange={e => setCourseId(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all appearance-none">
                     <option value="">Seleccionar...</option>
                     {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-gray-700">Área <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Área <span className="text-red-400">*</span></label>
                   <select value={areaId} onChange={e => { setAreaId(e.target.value); setSubareaId('') }} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all appearance-none">
                     <option value="">Seleccionar...</option>
                     {areas.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-gray-700">Subárea</label>
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Subárea <span className="text-xs text-gray-400 font-normal normal-case">(opcional)</span></label>
                   <select value={subareaId} onChange={e => setSubareaId(e.target.value)} disabled={!areaId || filteredSubareas.length === 0} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all appearance-none disabled:opacity-50 disabled:cursor-not-allowed">
-                    <option value="">Opcional</option>
+                    <option value="">Seleccionar...</option>
                     {filteredSubareas.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
@@ -450,7 +450,7 @@ export default function ResourceForm({ mode, resourceId }: ResourceFormProps) {
               />
 
               {!isFree && (
-                <div className="bg-white border border-indigo-100 rounded-2xl p-5 mb-4 shadow-sm space-y-2">
+                <div className="mt-4 bg-white border border-indigo-100 rounded-2xl p-5 shadow-sm space-y-2">
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 whitespace-nowrap">
                       <Gem size={15} className="text-indigo-500" />
@@ -481,7 +481,7 @@ export default function ResourceForm({ mode, resourceId }: ResourceFormProps) {
               )}
 
               {isFree && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                <div className="mt-4 bg-emerald-50 border border-emerald-200 rounded-xl p-4">
                   <div className="flex items-start gap-3">
                     <Sparkles size={18} className="mt-0.5 text-emerald-600" />
                     <p className="text-sm text-emerald-800">
@@ -781,7 +781,7 @@ export default function ResourceForm({ mode, resourceId }: ResourceFormProps) {
                       <span className="text-xs font-medium">Sin descripción</span>
                     </div>
                   ) : (
-                    <p className="text-xs text-gray-500 mb-3">{description}</p>
+                    <p className="text-xs text-gray-500 mb-3 break-words">{description}</p>
                   )}
                   {tags.length > 0 ? (
                     <div className="flex flex-wrap gap-1.5">
@@ -894,8 +894,8 @@ export default function ResourceForm({ mode, resourceId }: ResourceFormProps) {
                       </div>
                       <div className="p-4">
                         <p className="text-xs text-primary-600 font-medium mb-1">{selectedCourse?.name}</p>
-                        <h3 className="font-semibold text-gray-900 text-sm leading-tight mb-1 line-clamp-2">{title}</h3>
-                        <p className="text-xs text-gray-500 mb-3 line-clamp-2">{description || 'Sin descripción'}</p>
+                        <h3 className="font-semibold text-gray-900 text-sm leading-tight mb-1 line-clamp-2 break-words">{title}</h3>
+                        <p className="text-xs text-gray-500 mb-3 line-clamp-2 break-words">{description || 'Sin descripción'}</p>
                         <div className="flex flex-wrap gap-1 mb-3">
                           {tags.slice(0, 3).map(t => (
                             <span key={t} className="badge bg-gray-100 text-gray-600 text-[10px]">{t}</span>

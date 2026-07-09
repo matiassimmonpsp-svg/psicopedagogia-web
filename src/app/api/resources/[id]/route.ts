@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/auth'
 import { upsertTags } from '@/lib/utils'
 import { csrfCheck } from '@/lib/csrf'
+import { unlink } from 'fs/promises'
+import { join } from 'path'
 
 /** GET /api/resources/[id] — Obtiene un recurso */
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
@@ -89,8 +91,28 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   try {
+    const resource = await prisma.resource.findUnique({ where: { id: params.id } })
+    if (!resource) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
+
     await prisma.resourceTag.deleteMany({ where: { resourceId: params.id } })
+    await prisma.orderItem.deleteMany({ where: { resourceId: params.id } })
+    await prisma.download.deleteMany({ where: { resourceId: params.id } })
     await prisma.resource.delete({ where: { id: params.id } })
+
+    const deleteFile = async (filePath: string | null) => {
+      if (!filePath) return
+      try {
+        const fullPath = join(process.cwd(), 'public', filePath)
+        await unlink(fullPath)
+      } catch {}
+    }
+
+    await Promise.all([
+      deleteFile(resource.filePath),
+      deleteFile(resource.editablePath),
+      deleteFile(resource.previewPath),
+    ])
+
     return NextResponse.json({ success: true })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })

@@ -104,14 +104,14 @@ export default function ResourceDetail() {
               <p className="text-sm text-primary-600 font-medium mb-1">{resource.course.name}</p>
             )}
             <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-            <p className="text-gray-600 mt-2 leading-relaxed">{description}</p>
+            <p className="text-gray-600 mt-2 leading-relaxed break-words">{description}</p>
           </div>
 
-          {resource.tags && resource.tags.length > 0 && (
+          {resource.tags && Array.isArray(resource.tags) && resource.tags.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {resource.tags.map((t: any) => {
-                const tagName = typeof t === 'string' ? t : t.tag?.name || t.name
-                return <span key={tagName} className="badge bg-gray-100 text-gray-600 text-xs">{tagName}</span>
+                const tagName = typeof t === 'string' ? t : t.tag?.name || t.name || ''
+                return tagName ? <span key={tagName} className="badge bg-gray-100 text-gray-600 text-xs">{tagName}</span> : null
               })}
             </div>
           )}

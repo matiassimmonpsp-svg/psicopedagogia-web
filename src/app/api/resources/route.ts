@@ -6,22 +6,22 @@ import { upsertTags } from '@/lib/utils'
 import { csrfCheck } from '@/lib/csrf'
 
 /* Resuelve IDs del mock data a IDs reales en BD */
-const resolver = (modelo: string) => async (mockId: number) => {
+const resolver = (prismaModel: string, mockDataKey: string) => async (mockId: number) => {
   const mock = await import('@/lib/data')
-  const entries: any[] = (mock as any)[modelo]
+  const entries: any[] = (mock as any)[mockDataKey]
   const item = entries.find((e: any) => e.id === mockId)
   if (!item) return null
-  const existente = await (prisma as any)[modelo]?.findUnique({ where: { id: mockId } })
+  const existente = await (prisma as any)[prismaModel]?.findUnique({ where: { id: mockId } })
   if (existente) return existente.id
-  const porSlug = await (prisma as any)[modelo]?.findFirst({ where: { slug: item.slug } })
+  const porSlug = await (prisma as any)[prismaModel]?.findFirst({ where: { slug: item.slug } })
   if (porSlug) return porSlug.id
-  const creado = await (prisma as any)[modelo].create({ data: { id: item.id, ...item } })
+  const creado = await (prisma as any)[prismaModel].create({ data: { id: item.id, ...item } })
   return creado.id
 }
 
-const resolverCurso = resolver('courses')
-const resolverArea = resolver('areas')
-const resolverSubarea = resolver('subareas')
+const resolverCurso = resolver('course', 'courses')
+const resolverArea = resolver('area', 'areas')
+const resolverSubarea = resolver('subarea', 'subareas')
 
 /** POST /api/resources — Crea un nuevo recurso (solo admin) */
 export async function POST(request: NextRequest) {

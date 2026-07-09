@@ -17,12 +17,14 @@ interface Props {
   options: Opcion[]
   value: string
   onChange: (value: string) => void
+  columns?: number
 }
 
-/** Grupo de botones tipo toggle pill. Soporta iconos y colores custom. */
-export default function ToggleGroup({ options, value, onChange }: Props) {
+/** Grupo de botones tipo toggle. Soporta iconos y colores custom. */
+export default function ToggleGroup({ options, value, onChange, columns = 2 }: Props) {
+  const gridCols = columns === 3 ? 'grid-cols-3' : columns === 2 ? 'grid-cols-2' : 'grid-cols-1'
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className={`grid ${gridCols} gap-3`}>
       {options.map(op => {
         const activo = value === op.value
         return (
@@ -30,14 +32,14 @@ export default function ToggleGroup({ options, value, onChange }: Props) {
             key={op.value}
             type="button"
             onClick={() => onChange(op.value)}
-            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all ${
+            className={`flex items-center gap-3 px-5 py-4 rounded-xl text-sm font-semibold border-2 transition-all w-full justify-center ${
               activo
                 ? `${op.activeBg || 'bg-primary-50'} ${op.activeText || 'text-primary-700'} ${op.activeBorder || 'border-primary-500'} shadow-sm`
                 : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
             }`}
           >
             {op.icon && (
-              <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${
+              <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
                 activo ? op.iconBg || 'bg-primary-200' : 'bg-gray-100'
               } ${activo ? op.iconColor || 'text-primary-700' : 'text-gray-500'}`}
               >
