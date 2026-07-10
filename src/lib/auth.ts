@@ -8,20 +8,22 @@ if (!JWT_SECRET) throw new Error('JWT_SECRET no definido en .env')
 
 const SALT_ROUNDS = 10
 
+/** Valida que la contraseña cumpla requisitos mínimos */
+export function validatePassword(password: string): string | null {
+  if (!password || password.length < 8) {
+    return 'La contraseña debe tener al menos 8 caracteres'
+  }
+  if (password.length > 128) {
+    return 'La contraseña es demasiado larga (máximo 128 caracteres)'
+  }
+  return null
+}
+
 export interface AuthUser {
   id: string
   name: string
   email: string
   role: string
-}
-
-/** Valida que la contraseña cumpla requisitos mínimos. Devuelve null si es válida, o un string con el error. */
-export function validatePassword(password: string): string | null {
-  if (password.length < 8) return 'La contraseña debe tener al menos 8 caracteres'
-  if (!/[A-Z]/.test(password)) return 'La contraseña debe contener al menos una mayúscula'
-  if (!/[a-z]/.test(password)) return 'La contraseña debe contener al menos una minúscula'
-  if (!/[0-9]/.test(password)) return 'La contraseña debe contener al menos un número'
-  return null
 }
 
 /** Hashea una contraseña con bcrypt */

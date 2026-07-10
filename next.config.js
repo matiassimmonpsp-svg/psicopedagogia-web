@@ -1,9 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
+  poweredByHeader: false,
+  compress: true,
   images: {
     remotePatterns: [
-      { protocol: 'https', hostname: '**' }
-    ]
+      { protocol: 'https', hostname: 'graph.instagram.com' },
+    ],
+    unoptimized: false,
   },
   async rewrites() {
     return [

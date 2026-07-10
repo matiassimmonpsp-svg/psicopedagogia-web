@@ -11,10 +11,17 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
   const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '12', 10)))
-  const offset = (page - 1) * limit
 
   const dbResources = await prisma.resource.findMany({
-    include: { course: true, area: true, subarea: true, tags: { include: { tag: true } } },
+    select: {
+      id: true, title: true, description: true, filePath: true, previewPath: true,
+      resourceType: true, isFree: true, priceClp: true, promoFreeUntil: true,
+      courseId: true, areaId: true, subareaId: true, downloadsCount: true, isActive: true,
+      course: { select: { name: true, slug: true } },
+      area: { select: { name: true, slug: true } },
+      subarea: { select: { name: true, slug: true } },
+      tags: { select: { tag: { select: { name: true } } } },
+    },
     orderBy: { createdAt: 'desc' },
   })
 
@@ -53,7 +60,7 @@ export async function GET(request: Request) {
   ]
 
   const total = combined.length
-  const paginated = combined.slice(offset, offset + limit)
+  const paginated = combined.slice((page - 1) * limit, (page - 1) * limit + limit)
 
   return NextResponse.json({
     resources: paginated,

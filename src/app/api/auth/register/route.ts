@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createUser, signToken } from '@/lib/auth'
-import { checkRateLimit } from '@/lib/rate-limit'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 import { cookies } from 'next/headers'
 
 /** POST /api/auth/register — Crea una cuenta nueva */
 export async function POST(request: NextRequest) {
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1'
+  const ip = getClientIp(request.headers)
   if (!checkRateLimit(`register:${ip}`, 3, 60_000).allowed) {
     return NextResponse.json({ error: 'Demasiados intentos. Espera 1 minuto.' }, { status: 429 })
   }
@@ -16,6 +16,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Todos los campos son obligatorios' }, { status: 400 })
     }
 
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return NextResponse.json({ error: 'Formato de correo inválido' }, { status: 400 })
+    }
+
     const user = await createUser(name, email, password)
     const token = await signToken(user)
 
@@ -24,7 +28,7 @@ export async function POST(request: NextRequest) {
       sameSite: 'strict', path: '/', maxAge: 7 * 24 * 60 * 60,
     })
 
-    return NextResponse.json({ user, token }, { status: 201 })
+    return NextResponse.json({ user }, { status: 201 })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Error desconocido'
     const status = message === 'El correo ya está registrado' ? 409 : 500

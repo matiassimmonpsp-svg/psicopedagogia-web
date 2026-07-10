@@ -1,30 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { Prisma } from '@prisma/client'
 import { upsertTags } from '@/lib/utils'
 import { csrfCheck } from '@/lib/csrf'
-
-/* Resuelve IDs del mock data a IDs reales en BD */
-const resolver = (prismaModel: string, mockDataKey: string) => async (mockId: number) => {
-  const mock = await import('@/lib/data') as Record<string, unknown>
-  const mockModule = mock as Record<string, Array<{ id: number; slug?: string }>>
-  const entries = mockModule[mockDataKey] || []
-  const item = entries.find(e => e.id === mockId)
-  if (!item) return null
-  const model = (prisma as unknown as Record<string, Record<string, (args: Record<string, unknown>) => Promise<{ id: number }>>>)[prismaModel]
-  if (!model) return null
-  const existente = await model.findUnique({ where: { id: mockId } })
-  if (existente) return existente.id
-  const porSlug = await model.findFirst({ where: { slug: item.slug } })
-  if (porSlug) return porSlug.id
-  const creado = await model.create({ data: { ...item, id: item.id } })
-  return creado.id
-}
-
-const resolverCurso = resolver('course', 'courses')
-const resolverArea = resolver('area', 'areas')
-const resolverSubarea = resolver('subarea', 'subareas')
 
 /** POST /api/resources — Crea un nuevo recurso (solo admin) */
 export async function POST(request: NextRequest) {
@@ -42,10 +20,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 })
     }
 
-    const resolvedCourseId = await resolverCurso(Number(courseId))
-    const resolvedAreaId = await resolverArea(Number(areaId))
-    const resolvedSubareaId = subareaId ? await resolverSubarea(Number(subareaId)) : null
-    if (!resolvedCourseId || !resolvedAreaId) return NextResponse.json({ error: 'Curso o área inválidos' }, { status: 400 })
+    // Verificar que curso y área existan en la BD
+    const course = await prisma.course.findUnique({ where: { id: Number(courseId) } })
+    const area = await prisma.area.findUnique({ where: { id: Number(areaId) } })
+    if (!course || !area) {
+      return NextResponse.json({ error: 'Curso o área inválidos' }, { status: 400 })
+    }
+
+    const subarea = subareaId
+      ? await prisma.subarea.findUnique({ where: { id: Number(subareaId) } })
+      : null
 
     const resource = await prisma.resource.create({
       data: {
@@ -55,8 +39,8 @@ export async function POST(request: NextRequest) {
         resourceType: resourceType || 'evaluation',
         isFree: isFree ?? true,
         priceClp: isFree ? null : (priceClp ? Number(priceClp) : null),
-        courseId: resolvedCourseId, areaId: resolvedAreaId,
-        subareaId: resolvedSubareaId, isActive: true,
+        courseId: course.id, areaId: area.id,
+        subareaId: subarea?.id || null, isActive: true,
       },
     })
 

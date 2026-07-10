@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { Menu, X, ChevronDown, ShoppingCart, Search, User, LogOut } from 'lucide-react'
-import { courses } from '@/lib/data'
+import { courses } from '@/lib/mock-data'
 import { useAuth } from '@/context/AuthContext'
 import { useCart } from '@/context/CartContext'
 

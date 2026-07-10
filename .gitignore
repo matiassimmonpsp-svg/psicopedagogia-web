@@ -3,6 +3,14 @@ node_modules/
 out/
 .env
 .env.local
+.env.*.local
 private/
 *.db
 *.db-journal
+server.log
+dev.log
+dev-err.log
+dev-out.log
+test-results/
+playwright-report/
+tsconfig.tsbuildinfo

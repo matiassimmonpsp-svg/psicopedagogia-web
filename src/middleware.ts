@@ -33,12 +33,16 @@ export async function middleware(request: NextRequest) {
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
   response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-  // CSP: Next.js requiere unsafe-inline en dev para HMR
+
+  const isDev = process.env.NODE_ENV === 'development'
+  const scriptSrc = isDev ? "'self' 'unsafe-inline' 'unsafe-eval'" : "'self'"
+  const styleSrc = isDev ? "'self' 'unsafe-inline' https://fonts.googleapis.com" : "'self' 'unsafe-inline' https://fonts.googleapis.com"
+
   response.headers.set(
     'Content-Security-Policy',
     "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+    `script-src ${scriptSrc}; ` +
+    `style-src ${styleSrc}; ` +
     "img-src 'self' data: blob: https:; " +
     "font-src 'self' https://fonts.gstatic.com; " +
     "connect-src 'self' https://graph.instagram.com https://*.instagram.com; " +
@@ -52,5 +56,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin/:path*', '/((?!_next/static|_next/image|favicon.ico|api).*)'],
 }

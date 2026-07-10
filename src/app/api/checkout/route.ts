@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Carrito vacío' }, { status: 400 })
     }
 
-    const items = rawItems as { id: string; priceClp: number }[]
+    const items = rawItems as { id: string }[]
 
     const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
     if (!dbUser) {
@@ -54,27 +54,35 @@ export async function POST(request: NextRequest) {
       discountUsed = Math.round(totalClp * found.discountPct / 100)
       totalClp = Math.max(0, totalClp - discountUsed)
 
-      await prisma.discountCode.update({
-        where: { id: found.id },
+      /* Incremento atómico: previene race condition entre checkouts concurrentes */
+      const updated = await prisma.discountCode.updateMany({
+        where: { id: found.id, usedCount: { lt: found.maxUses ?? 999999 } },
         data: { usedCount: { increment: 1 } },
       })
+      if (updated.count === 0) {
+        return NextResponse.json({ error: 'Código de descuento agotado' }, { status: 400 })
+      }
     }
 
-    const order = await prisma.order.create({
-      data: {
-        userId: user.id,
-        totalClp,
-        status: 'completed',
-        paymentMethod: paymentMethod || 'simulated',
-        items: {
-          create: items.map(i => ({ resourceId: i.id, priceClp: i.priceClp })),
+    /* Usar precios de la BD, no del cliente */
+    const priceMap = new Map(existentes.map(r => [r.id, r.priceClp ?? 0]))
+
+    const order = await prisma.$transaction([
+      prisma.order.create({
+        data: {
+          userId: user.id,
+          totalClp,
+          status: 'completed',
+          paymentMethod: paymentMethod || 'simulated',
+          items: {
+            create: ids.map(id => ({ resourceId: id, priceClp: priceMap.get(id) ?? 0 })),
+          },
         },
-      },
-    })
+      }),
+      prisma.order.deleteMany({ where: { userId: user.id, status: 'cart' } }),
+    ])
 
-    await prisma.order.deleteMany({ where: { userId: user.id, status: 'cart' } })
-
-    return NextResponse.json({ success: true, orderId: order.id })
+    return NextResponse.json({ success: true, orderId: order[0].id })
   } catch (err: unknown) {
     console.error('Error en checkout:', err instanceof Error ? err.message : err)
     return NextResponse.json({ error: 'Error al procesar el pago' }, { status: 500 })

@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -22,6 +22,7 @@ model User {
   orders       Order[]
   downloads    Download[]
 
+  @@index([email])
   @@map("users")
 }
 
@@ -36,6 +37,7 @@ model Course {
   isActive  Boolean    @default(true) @map("is_active")
   resources Resource[]
 
+  @@index([slug])
   @@map("courses")
 }
 
@@ -51,6 +53,7 @@ model Area {
   resources Resource[]
   subareas  Subarea[]
 
+  @@index([slug])
   @@map("areas")
 }
 
@@ -68,6 +71,7 @@ model Subarea {
   resources Resource[]
 
   @@unique([areaId, slug])
+  @@index([areaId])
   @@map("subareas")
 }
 
@@ -99,6 +103,12 @@ model Resource {
   orderItems     OrderItem[]
   downloads      Download[]
 
+  @@index([courseId])
+  @@index([areaId])
+  @@index([subareaId])
+  @@index([isFree])
+  @@index([isActive])
+  @@index([createdAt])
   @@map("resources")
 }
 
@@ -111,6 +121,7 @@ model Tag {
   slug      String        @unique
   resources ResourceTag[]
 
+  @@index([slug])
   @@map("tags")
 }
 
@@ -124,6 +135,7 @@ model ResourceTag {
   tag        Tag      @relation(fields: [tagId], references: [id])
 
   @@id([resourceId, tagId])
+  @@index([tagId])
   @@map("resource_tags")
 }
 
@@ -142,6 +154,7 @@ model Order {
   user          User         @relation(fields: [userId], references: [id])
   items         OrderItem[]
 
+  @@index([userId, status])
   @@map("orders")
 }
 
@@ -157,6 +170,8 @@ model OrderItem {
   order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   resource   Resource @relation(fields: [resourceId], references: [id])
 
+  @@index([orderId])
+  @@index([resourceId])
   @@map("order_items")
 }
 
@@ -172,6 +187,8 @@ model Download {
   user         User     @relation(fields: [userId], references: [id])
   resource     Resource @relation(fields: [resourceId], references: [id])
 
+  @@index([userId])
+  @@index([resourceId])
   @@map("downloads")
 }
 
@@ -188,6 +205,7 @@ model DiscountCode {
   isActive    Boolean   @default(true) @map("is_active")
   createdAt   DateTime  @default(now()) @map("created_at")
 
+  @@index([code])
   @@map("discount_codes")
 }
 
@@ -195,12 +213,13 @@ model DiscountCode {
 // Modelo: Post de Instagram (mock / real)
 // ============================================================
 model SocialPost {
-  id              Int      @id @default(autoincrement())
-  instagramPostId String   @map("instagram_post_id")
-  mediaUrl        String   @map("media_url")
+  id              Int       @id @default(autoincrement())
+  instagramPostId String    @unique @map("instagram_post_id")
+  mediaUrl        String    @map("media_url")
   caption         String?
   permalink       String?
-  postedAt        DateTime @default(now()) @map("posted_at")
+  postedAt        DateTime  @default(now()) @map("posted_at")
+  syncedAt        DateTime? @map("synced_at")
 
   @@map("social_posts")
 }

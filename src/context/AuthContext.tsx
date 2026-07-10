@@ -92,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null)
       toast.success('Sesión cerrada')
       router.push('/')
+      router.refresh()
     } catch {
       toast.error('Error de conexión al cerrar sesión')
     }

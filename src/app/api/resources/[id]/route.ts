@@ -10,7 +10,16 @@ import { join } from 'path'
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   const resource = await prisma.resource.findUnique({
     where: { id: params.id },
-    include: { course: true, area: true, subarea: true, tags: { include: { tag: true } } },
+    select: {
+      id: true, title: true, description: true, previewPath: true,
+      resourceType: true, isFree: true, priceClp: true, promoFreeUntil: true,
+      courseId: true, areaId: true, subareaId: true, downloadsCount: true,
+      isActive: true, createdAt: true, updatedAt: true,
+      course: { select: { name: true, slug: true } },
+      area: { select: { name: true, slug: true } },
+      subarea: { select: { name: true, slug: true } },
+      tags: { select: { tag: { select: { name: true, slug: true } } } },
+    },
   })
   if (!resource) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
   return NextResponse.json({ resource })

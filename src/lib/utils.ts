@@ -43,19 +43,22 @@ export async function downloadFile(url: string, filename: string): Promise<void>
   URL.revokeObjectURL(blobUrl)
 }
 
-/** Crea las relaciones ResourceTag para un recurso dado */
-export async function upsertTags(tags: string[], resourceId: string, prisma: any) {
-  for (const tagName of tags) {
-    const slug = tagName.toLowerCase().replace(/\s+/g, '-')
-    let tag = await prisma.tag.findUnique({ where: { slug } })
-    if (!tag) {
-      tag = await prisma.tag.create({ data: { name: tagName, slug } })
-    }
-    const exists = await prisma.resourceTag.findFirst({
-      where: { resourceId, tagId: tag.id }
-    })
-    if (!exists) {
-      await prisma.resourceTag.create({ data: { resourceId, tagId: tag.id } })
-    }
+/** Crea las relaciones ResourceTag para un recurso dado (batch optimizado) */
+export async function upsertTags(tags: string[], resourceId: string, prismaClient: { tag: { findMany: (args: { where: { slug: { in: string[] } } }) => Promise<Array<{ id: number; slug: string }>>; create: (args: { data: { name: string; slug: string } }) => Promise<{ id: number }> }; resourceTag: { createMany: (args: { data: Array<{ resourceId: string; tagId: number }>; skipDuplicates: boolean }) => Promise<unknown> } }) {
+  const slugs = tags.map(t => t.toLowerCase().replace(/\s+/g, '-'))
+  const existing = await prismaClient.tag.findMany({ where: { slug: { in: slugs } } })
+  const existingMap = new Map(existing.map(t => [t.slug, t.id]))
+
+  const newSlugs = slugs.filter(s => !existingMap.has(s))
+  for (const slug of newSlugs) {
+    const name = tags[slugs.indexOf(slug)]
+    const created = await prismaClient.tag.create({ data: { name, slug } })
+    existingMap.set(slug, created.id)
   }
+
+  const tagIds = slugs.map(s => existingMap.get(s)!).filter(Boolean)
+  await prismaClient.resourceTag.createMany({
+    data: tagIds.map(tagId => ({ resourceId, tagId })),
+    skipDuplicates: true,
+  })
 }

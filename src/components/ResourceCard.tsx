@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useState, memo } from 'react'
 import toast from 'react-hot-toast'
 import { Download, Coffee, BookOpen, Clock, Edit, Pause, Play, Trash2 } from 'lucide-react'
@@ -31,9 +32,10 @@ export const ResourceCard = memo(function ResourceCard({ resource, onUpdate }: R
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !isPaused }),
       })
-      if (!res.ok) throw new Error('Error')
+      if (!res.ok) throw new Error('Error al cambiar estado')
       onUpdate?.()
-    } catch {
+    } catch (err) {
+      console.error('Error toggling active state:', err)
       toast.error('Error al cambiar estado')
     }
   }
@@ -44,9 +46,10 @@ export const ResourceCard = memo(function ResourceCard({ resource, onUpdate }: R
     if (!confirm(`¿Eliminar "${resource.title}"?`)) return
     try {
       const res = await fetch(`/api/resources/${resource.id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Error')
+      if (!res.ok) throw new Error('Error al eliminar')
       onUpdate?.()
-    } catch {
+    } catch (err) {
+      console.error('Error deleting resource:', err)
       toast.error('Error al eliminar')
     }
   }
@@ -55,7 +58,7 @@ export const ResourceCard = memo(function ResourceCard({ resource, onUpdate }: R
     <Link href={`/recurso/${resource.id}`} className="card overflow-hidden group">
       <div className="aspect-[3/4] relative flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary-100 via-accent-50 to-secondary-100">
         {hasCustomPreview ? (
-          <img src={resource.previewPath} alt={resource.title} className="w-full h-full object-cover" onError={() => setImgError(true)} />
+          <Image src={resource.previewPath} alt={resource.title} fill className="object-cover" onError={() => setImgError(true)} sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" />
         ) : (
           <div className="text-center p-4">
             <BookOpen size={40} className="mx-auto text-primary-400 mb-2" />

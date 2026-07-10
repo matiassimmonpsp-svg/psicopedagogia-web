@@ -56,8 +56,8 @@ export function TagInput({ value, onChange, courseId, areaId }: TagInputProps) {
   useEffect(() => {
     fetch('/api/tags')
       .then(r => r.json())
-      .then(d => setAllTags(d.tags?.map((t: any) => t.name) || []))
-      .catch(() => {})
+      .then(d => setAllTags(d.tags?.map((t: { name: string }) => t.name) || []))
+      .catch((err) => console.error('Error fetching tags:', err))
   }, [])
 
   useEffect(() => {

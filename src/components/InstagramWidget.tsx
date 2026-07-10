@@ -17,7 +17,7 @@ export function InstagramWidget() {
         setPosts(data.posts || [])
         setSource(data.source || 'mock')
       })
-      .catch(() => {})
+      .catch((err) => console.error('Error fetching Instagram posts:', err))
   }, [])
 
   if (posts.length === 0) return null

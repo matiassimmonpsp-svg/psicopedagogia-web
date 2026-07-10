@@ -23,7 +23,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
   try {
     const body = await request.json()
-    const data: any = {}
+    const data: Record<string, unknown> = {}
     const pct = body.discountPercent ?? body.discountPct
     if (pct !== undefined) data.discountPct = parseInt(pct)
     if (body.maxUses !== undefined) data.maxUses = body.maxUses ? parseInt(body.maxUses) : null

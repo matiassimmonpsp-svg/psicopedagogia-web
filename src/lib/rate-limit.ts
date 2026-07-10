@@ -1,7 +1,9 @@
 /**
  * Rate limiting en memoria (por IP).
  * Almacena timestamps por clave en un Map.
- * Nopersiste entre reinicios del servidor.
+ * No persiste entre reinicios del servidor.
+ *
+ * Nota: En producción multi-instancia se recomienda Redis o similar.
  */
 
 const almacen = new Map<string, number[]>()
@@ -17,6 +19,19 @@ setInterval(() => {
     else almacen.delete(key)
   }
 }, 300_000)
+
+/**
+ * Extrae la IP real del request, ignorando X-Forwarded-For spoofed
+ * cuando el servidor no está detrás de un proxy confiable.
+ */
+export function getClientIp(headers: Headers): string {
+  const forwarded = headers.get('x-forwarded-for')
+  if (forwarded) {
+    const first = forwarded.split(',')[0]?.trim()
+    if (first && /^(?:\d{1,3}\.){3}\d{1,3}$/.test(first)) return first
+  }
+  return headers.get('x-real-ip') || '127.0.0.1'
+}
 
 /**
  * Verifica si una clave puede continuar según el límite.

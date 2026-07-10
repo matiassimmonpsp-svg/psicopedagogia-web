@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
-import { checkRateLimit } from '@/lib/rate-limit'
-import fs from 'fs'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
+import { createReadStream, existsSync } from 'fs'
+import { stat } from 'fs/promises'
 import path from 'path'
+import { Readable } from 'stream'
 
 const DIRS_PERMITIDOS = [
   path.join(process.cwd(), 'public'),
@@ -32,8 +34,7 @@ const MIME: Record<string, string> = {
 
 /** GET /api/download/[id] — Descarga un recurso (PDF o editable) */
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-    || request.headers.get('x-real-ip') || '127.0.0.1'
+  const ip = getClientIp(request.headers)
   if (!checkRateLimit(`download:${ip}`, 20, 60_000).allowed) {
     return NextResponse.json({ error: 'Demasiadas descargas. Espera 1 minuto.' }, { status: 429 })
   }
@@ -87,14 +88,16 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     const ext = path.extname(archivo).toLowerCase()
-    const buffer = fs.readFileSync(archivo)
     const nombreSeguro = resource.title.replace(/[^a-z0-9]+/gi, '-')
+    const fileStat = await stat(archivo)
+    const fileStream = createReadStream(archivo)
+    const webStream = Readable.toWeb(fileStream) as ReadableStream
 
-    return new NextResponse(buffer, {
+    return new NextResponse(webStream, {
       headers: {
         'Content-Type': MIME[ext] || 'application/octet-stream',
         'Content-Disposition': `attachment; filename="${nombreSeguro}${ext}"`,
-        'Content-Length': buffer.length.toString(),
+        'Content-Length': fileStat.size.toString(),
       },
     })
   } catch (err: unknown) {

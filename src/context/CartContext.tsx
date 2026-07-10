@@ -29,9 +29,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const fetchCart = useCallback(async () => {
     if (!user) {
       try {
-        const stored = localStorage.getItem('cart')
-        setItems(stored ? JSON.parse(stored) : [])
-      } catch { setItems([]) }
+        if (typeof window !== 'undefined') {
+          const stored = localStorage.getItem('cart')
+          setItems(stored ? JSON.parse(stored) : [])
+        }
+      } catch {
+        setItems([])
+      }
       setLoading(false)
       return
     }
@@ -42,20 +46,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const data = await res.json()
         setItems(data.items || [])
       }
-    } catch { console.error('Error al cargar carrito') }
+    } catch (err) {
+      console.error('Error al cargar carrito:', err)
+      setItems([])
+    }
     finally { setLoading(false) }
   }, [user])
 
   useEffect(() => { fetchCart() }, [fetchCart])
 
-  const guardarLocal = useCallback((items: CartItem[]) => {
-    localStorage.setItem('cart', JSON.stringify(items))
-    setItems(items)
+  const guardarLocal = useCallback((newItems: CartItem[]) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cart', JSON.stringify(newItems))
+    }
+    setItems(newItems)
   }, [])
 
   const addItem = useCallback(async (item: CartItem): Promise<string | null> => {
     if (!user) {
-      const cart = JSON.parse(localStorage.getItem('cart') || '[]')
+      const stored = typeof window !== 'undefined' ? localStorage.getItem('cart') : null
+      const cart: CartItem[] = stored ? JSON.parse(stored) : []
       if (!cart.some((i: CartItem) => i.id === item.id)) {
         cart.push(item)
         guardarLocal(cart)
@@ -84,19 +94,29 @@ export function CartProvider({ children }: { children: ReactNode }) {
       guardarLocal(items.filter(i => i.id !== id))
       return
     }
-    await fetch(`/api/cart/${id}`, { method: 'DELETE' })
-    await fetchCart()
+    try {
+      await fetch(`/api/cart/${id}`, { method: 'DELETE' })
+      await fetchCart()
+    } catch (err) {
+      console.error('Error al eliminar del carrito:', err)
+    }
   }, [user, items, fetchCart, guardarLocal])
 
   const clearCart = useCallback(async () => {
     if (!user) {
-      localStorage.removeItem('cart')
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('cart')
+      }
       setItems([])
       return
     }
-    await Promise.all(items.map(i => fetch(`/api/cart/${i.id}`, { method: 'DELETE' })))
-    await fetchCart()
-  }, [user, items, fetchCart])
+    try {
+      await fetch('/api/cart/clear', { method: 'DELETE' })
+      await fetchCart()
+    } catch (err) {
+      console.error('Error al vaciar carrito:', err)
+    }
+  }, [user, fetchCart])
 
   const count = items.length
   const subtotal = items.reduce((s, i) => s + i.priceClp, 0)
