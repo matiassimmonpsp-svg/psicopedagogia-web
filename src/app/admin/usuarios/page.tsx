@@ -58,7 +58,7 @@ export default function AdminUsuarios() {
     }
 
     setSaving(true)
-    const body: any = { name: editName.trim(), email: editEmail.trim() }
+    const body: Record<string, unknown> = { name: editName.trim(), email: editEmail.trim() }
     if (editPassword) body.password = editPassword
 
     const res = await fetch(`/api/users/${editingUser.id}`, {

@@ -17,7 +17,7 @@ function resolverArchivo(ruta: string): string | null {
   if (ruta.includes('..')) return null
   for (const dir of DIRS_PERMITIDOS) {
     const candidato = path.resolve(path.join(dir, ruta))
-    if (candidato.startsWith(dir + path.sep) && fs.existsSync(candidato)) return candidato
+    if (candidato.startsWith(dir + path.sep) && existsSync(candidato)) return candidato
   }
   return null
 }

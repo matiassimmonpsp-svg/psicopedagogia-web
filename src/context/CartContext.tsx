@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import { useAuth } from './AuthContext'
-import type { CartItem } from '@/lib/types'
+import type { CartItem } from '@/lib/data'
 
 interface CartContextType {
   items: CartItem[]
@@ -33,7 +33,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           const stored = localStorage.getItem('cart')
           setItems(stored ? JSON.parse(stored) : [])
         }
-      } catch {
+      } catch (err) { console.warn('Error al parsear carrito del localStorage:', err)
         setItems([])
       }
       setLoading(false)

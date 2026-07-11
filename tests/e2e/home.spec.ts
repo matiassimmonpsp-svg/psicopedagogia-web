@@ -92,12 +92,14 @@ test.describe('Flujo de login', () => {
 
   test('muestra error con credenciales vacías', async ({ page }) => {
     await page.goto('/login')
+    await page.waitForLoadState('networkidle')
     await page.click('button[type="submit"]')
     await expect(page.locator('text=Todos los campos son obligatorios')).toBeVisible()
   })
 
   test('muestra error con credenciales inválidas', async ({ page }) => {
     await page.goto('/login')
+    await page.waitForLoadState('networkidle')
     await page.fill('#email', 'noexist@test.com')
     await page.fill('#password', 'WrongPass1')
     await page.click('button[type="submit"]')
@@ -150,12 +152,14 @@ test.describe('Flujo de registro', () => {
 
   test('muestra error con campos vacíos', async ({ page }) => {
     await page.goto('/registro')
+    await page.waitForLoadState('networkidle')
     await page.click('button[type="submit"]')
     await expect(page.locator('text=Todos los campos son obligatorios')).toBeVisible()
   })
 
   test('valida longitud mínima de contraseña', async ({ page }) => {
     await page.goto('/registro')
+    await page.waitForLoadState('networkidle')
     await page.fill('#name', 'Test User')
     await page.fill('#email', 'short@test.com')
     await page.fill('#password', 'Ab1')
@@ -165,6 +169,7 @@ test.describe('Flujo de registro', () => {
 
   test('valida mayúscula en contraseña', async ({ page }) => {
     await page.goto('/registro')
+    await page.waitForLoadState('networkidle')
     await page.fill('#name', 'Test User')
     await page.fill('#email', 'noupper@test.com')
     await page.fill('#password', 'alllower12')
@@ -174,6 +179,7 @@ test.describe('Flujo de registro', () => {
 
   test('valida minúscula en contraseña', async ({ page }) => {
     await page.goto('/registro')
+    await page.waitForLoadState('networkidle')
     await page.fill('#name', 'Test User')
     await page.fill('#email', 'nolower@test.com')
     await page.fill('#password', 'ALLUPPER12')
@@ -183,6 +189,7 @@ test.describe('Flujo de registro', () => {
 
   test('valida número en contraseña', async ({ page }) => {
     await page.goto('/registro')
+    await page.waitForLoadState('networkidle')
     await page.fill('#name', 'Test User')
     await page.fill('#email', 'nonum@test.com')
     await page.fill('#password', 'NoNumberHere')
@@ -253,9 +260,9 @@ test.describe('Catálogo', () => {
 
   test('muestra contador de resultados', async ({ page }) => {
     await page.goto('/catalogo')
-    await page.waitForTimeout(2000)
+    await page.waitForLoadState('networkidle')
     const counter = page.locator('text=/\\d+ recurso/')
-    await expect(counter).toBeVisible()
+    await expect(counter).toBeVisible({ timeout: 10000 })
   })
 
   test('puede filtrar por curso', async ({ page }) => {
@@ -298,6 +305,7 @@ test.describe('Búsqueda', () => {
 
   test('realiza búsqueda por parámetro q', async ({ page }) => {
     await page.goto('/buscar?q=lectura')
+    await page.waitForLoadState('networkidle')
     await page.waitForTimeout(2000)
     const resultText = page.locator('text=/resultado/')
     const noResults = page.locator('text=No se encontraron resultados')
@@ -308,6 +316,7 @@ test.describe('Búsqueda', () => {
 
   test('muestra mensaje cuando no hay resultados', async ({ page }) => {
     await page.goto('/buscar?q=xyznonexistentterm12345')
+    await page.waitForLoadState('networkidle')
     await page.waitForTimeout(2000)
     await expect(page.locator('text=No se encontraron resultados')).toBeVisible()
   })
@@ -322,6 +331,7 @@ test.describe('Búsqueda', () => {
 
   test('puede buscar desde la página principal', async ({ page }) => {
     await page.goto('/')
+    await page.waitForLoadState('networkidle')
     const searchInput = page.locator('input[type="text"]').first()
     await searchInput.fill('evaluación')
     await searchInput.press('Enter')
@@ -467,7 +477,8 @@ test.describe('Panel admin - Control de acceso', () => {
     await page.waitForTimeout(2000)
 
     await page.goto('/admin')
-    await page.waitForTimeout(2000)
+    await page.waitForLoadState('networkidle')
+    await page.waitForTimeout(3000)
 
     const statsVisible = await page.locator('text=Recursos totales').isVisible().catch(() => false)
     const dashboardVisible = await page.locator('h1:has-text("Dashboard")').isVisible().catch(() => false)

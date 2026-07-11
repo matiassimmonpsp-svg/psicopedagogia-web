@@ -9,6 +9,7 @@ import type { Resource } from '@/lib/data'
 import { formatClp, hasActivePromo } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
 
+/** Tarjeta de recurso reutilizada en catálogo, admin y detalle */
 interface ResourceCardProps {
   resource: Resource
   onUpdate?: () => void
@@ -35,7 +36,7 @@ export const ResourceCard = memo(function ResourceCard({ resource, onUpdate }: R
       if (!res.ok) throw new Error('Error al cambiar estado')
       onUpdate?.()
     } catch (err) {
-      console.error('Error toggling active state:', err)
+      console.error('Error al cambiar estado del recurso:', err)
       toast.error('Error al cambiar estado')
     }
   }
@@ -49,7 +50,7 @@ export const ResourceCard = memo(function ResourceCard({ resource, onUpdate }: R
       if (!res.ok) throw new Error('Error al eliminar')
       onUpdate?.()
     } catch (err) {
-      console.error('Error deleting resource:', err)
+      console.error('Error al eliminar recurso:', err)
       toast.error('Error al eliminar')
     }
   }
@@ -68,7 +69,11 @@ export const ResourceCard = memo(function ResourceCard({ resource, onUpdate }: R
 
         {isPaused && <div className="absolute inset-0 bg-black/50 z-[1]" />}
 
-        {promoActive ? (
+        {resource.isOwned ? (
+          <span className="absolute top-2 right-2 bg-emerald-500 text-white badge text-xs flex items-center gap-1 z-[2]">
+            <Download size={12} /> Ya comprado
+          </span>
+        ) : promoActive ? (
           <span className="absolute top-2 right-2 bg-amber-500 text-white badge text-xs flex items-center gap-1 z-[2]">
             <Clock size={12} /> Promo
           </span>
@@ -111,7 +116,9 @@ export const ResourceCard = memo(function ResourceCard({ resource, onUpdate }: R
             {resource.downloadsCount}
           </div>
           <span className="font-bold text-sm">
-            {promoActive ? (
+            {resource.isOwned ? (
+              <span className="text-emerald-600 flex items-center gap-1"><Download size={14} /> Ya comprado</span>
+            ) : promoActive ? (
               <span className="text-amber-600 flex items-center gap-1"><Clock size={14} /> Promo</span>
             ) : resource.isFree ? (
               <span className="text-green-600 flex items-center gap-1"><Coffee size={14} /> Gratuito</span>

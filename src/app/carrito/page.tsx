@@ -5,7 +5,9 @@ import { useState, useEffect } from 'react'
 import { Trash2, ShoppingBag, ArrowLeft, Percent, X } from 'lucide-react'
 import { formatClp } from '@/lib/utils'
 import { useCart } from '@/context/CartContext'
+import { saveDiscountToSession, loadDiscountFromSession, clearDiscountFromSession } from '@/lib/discount-storage'
 
+/** Página del carrito de compras */
 export default function CartPage() {
   const { items, removeItem, subtotal, loading } = useCart()
   const [discountCode, setDiscountCode] = useState('')
@@ -15,13 +17,11 @@ export default function CartPage() {
   const [verifying, setVerifying] = useState(false)
 
   useEffect(() => {
-    const savedCode = sessionStorage.getItem('discountCode')
-    const savedDiscount = sessionStorage.getItem('discountAmount')
-    const savedPercent = sessionStorage.getItem('discountPercent')
-    if (savedCode && savedDiscount) {
-      setDiscountCode(savedCode)
-      setDiscount(Number(savedDiscount))
-      setDiscountPercent(Number(savedPercent) || 0)
+    const saved = loadDiscountFromSession()
+    if (saved) {
+      setDiscountCode(saved.code)
+      setDiscount(saved.amount)
+      setDiscountPercent(saved.percent)
     }
   }, [])
 
@@ -46,15 +46,11 @@ export default function CartPage() {
         setDiscountError(data.error || 'Código no válido')
         setDiscount(null)
         setDiscountPercent(0)
-        sessionStorage.removeItem('discountCode')
-        sessionStorage.removeItem('discountAmount')
-        sessionStorage.removeItem('discountPercent')
+        clearDiscountFromSession()
       } else {
         setDiscount(data.discount)
         setDiscountPercent(data.discountPercent)
-        sessionStorage.setItem('discountCode', data.code)
-        sessionStorage.setItem('discountAmount', String(data.discount))
-        sessionStorage.setItem('discountPercent', String(data.discountPercent))
+        saveDiscountToSession(data.code, data.discount, data.discountPercent)
         setDiscountError('')
       }
     } catch {
@@ -69,9 +65,7 @@ export default function CartPage() {
     setDiscountPercent(0)
     setDiscountCode('')
     setDiscountError('')
-    sessionStorage.removeItem('discountCode')
-    sessionStorage.removeItem('discountAmount')
-    sessionStorage.removeItem('discountPercent')
+    clearDiscountFromSession()
   }
 
   const total = discount ? Math.max(0, subtotal - discount) : subtotal

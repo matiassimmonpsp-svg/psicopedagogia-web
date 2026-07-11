@@ -4,6 +4,14 @@ import { Eye, Edit, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import type { Resource } from '@/lib/data'
 
+/**
+ * Props del componente ResourceTable.
+ * @property resources - Lista de recursos a mostrar en la tabla.
+ * @property loading - Si es true, muestra un estado de carga.
+ * @property onDelete - Callback que se ejecuta al eliminar un recurso (recibe id y título).
+ * @property showStatus - Si es true, muestra la columna de estado (activo/en pausa).
+ * @property onToggleActive - Callback para alternar el estado activo/inactivo de un recurso.
+ */
 interface ResourceTableProps {
   resources: Resource[]
   loading?: boolean
@@ -12,6 +20,19 @@ interface ResourceTableProps {
   onToggleActive?: (id: string, current: boolean | undefined) => void
 }
 
+/**
+ * Tabla de recursos para el panel de administración.
+ *
+ * Renderiza una tabla con columns de título, curso, tipo, precio, descargas
+ * y acciones (ver, editar, eliminar). Opcionalmente muestra el estado activo/pausa
+ * con botón para alternar. Muestra estados de carga y lista vacía.
+ *
+ * @param resources - Array de recursos a mostrar.
+ * @param loading - Estado de carga.
+ * @param onDelete - Función para eliminar un recurso.
+ * @param showStatus - Mostrar columna de estado.
+ * @param onToggleActive - Función para cambiar el estado activo.
+ */
 export default function ResourceTable({ resources, loading, onDelete, showStatus, onToggleActive }: ResourceTableProps) {
   if (loading) return <div className="p-8 text-center text-gray-400">Cargando...</div>
 

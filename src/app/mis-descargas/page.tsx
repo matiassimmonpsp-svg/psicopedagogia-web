@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
 import { courses, areas } from '@/lib/data'
 import { downloadFile } from '@/lib/utils'
-import type { DownloadItem } from '@/lib/types'
+import type { DownloadItem } from '@/lib/data'
 
 export default function DownloadsPage() {
   const { user, loading: authLoading } = useAuth()
@@ -34,8 +34,7 @@ export default function DownloadsPage() {
           const data = await res.json()
           setDownloads(data.downloads || [])
         }
-      } catch {
-      } finally {
+      } catch (err) { console.error('Error al cargar descargas:', err) } finally {
         setLoading(false)
       }
     }

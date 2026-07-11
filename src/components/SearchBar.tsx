@@ -4,6 +4,16 @@ import { useRouter } from 'next/navigation'
 import { useState, FormEvent } from 'react'
 import { Search } from 'lucide-react'
 
+/**
+ * Barra de búsqueda reutilizable.
+ *
+ * Permite al usuario ingresar un término de búsqueda y redirige a la página
+ * de resultados (/buscar?q=...). Soporta variantes de tamaño (grande/pequeño)
+ * y acepta clases CSS adicionales para personalización.
+ *
+ * @param large - Si es true, muestra una versión más grande del input.
+ * @param className - Clases CSS adicionales para el contenedor del formulario.
+ */
 export function SearchBar({ large = false, className = '' }: { large?: boolean; className?: string }) {
   const router = useRouter()
   const [query, setQuery] = useState('')

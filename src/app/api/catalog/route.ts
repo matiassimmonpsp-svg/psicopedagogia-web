@@ -1,16 +1,31 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getSession } from '@/lib/auth'
 import { allResources as mockResources, courses as mockCourses, areas as mockAreas, subareas as mockSubareas } from '@/lib/data'
 
 /**
  * GET /api/catalog — Devuelve todos los recursos combinando BD + mock data.
- * Soporta paginación con ?page=1&limit=12 (opcional, sin filtros).
- * Incluye slugs de curso y área para filtrar por nombre en vez de ID.
+ * Si el usuario está autenticado, incluye `isOwned` para cada recurso.
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
   const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '12', 10)))
+
+  /* Obtener IDs de recursos que el usuario ya posee (compra completada) */
+  let ownedResourceIds: Set<string> = new Set()
+  try {
+    const session = await getSession()
+    if (session) {
+      const ownedItems = await prisma.orderItem.findMany({
+        where: { order: { userId: session.id, status: 'completed' } },
+        select: { resourceId: true },
+      })
+      ownedResourceIds = new Set(ownedItems.map(i => i.resourceId))
+    }
+  } catch {
+    /* Sin sesión: catálogo público, todos los isOwned serán false */
+  }
 
   const dbResources = await prisma.resource.findMany({
     select: {
@@ -48,13 +63,15 @@ export async function GET(request: Request) {
       subareaName: r.subarea?.name || null,
       subareaSlug: r.subarea?.slug || null,
       tags: r.tags.map(t => t.tag.name),
+      isOwned: ownedResourceIds.has(r.id),
       source: 'db' as const,
     })),
-    // Recursos mock que no existen en BD (por si se agregaron manualmente en data.ts)
+    // Recursos mock que no existen en BD
     ...mockResources.filter(m => !dbResources.some(d => d.id === m.id)).map(m => ({
       ...m,
       courseSlug: mockCourses.find(c => c.id === m.courseId)?.slug || null,
       areaSlug: mockAreas.find(a => a.id === m.areaId)?.slug || null,
+      isOwned: false,
       source: 'mock' as const,
     })),
   ]

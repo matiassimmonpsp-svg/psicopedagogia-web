@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import type { AuthUser } from '@/lib/auth'
 
+/** Tipo del contexto de autenticación */
 interface AuthContextType {
   user: AuthUser | null
   loading: boolean
@@ -16,11 +17,25 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+/**
+ * Proveedor de contexto de autenticación.
+ *
+ * Gestiona el estado del usuario actual, proporciona funciones para
+ * login, registro, logout y refrescar la sesión. Al montarse, verifica
+ * si hay una sesión activa consultando /api/auth/me. Envuelve la
+ * aplicación y pone el contexto a disposición de todos los componentes hijos.
+ *
+ * @param children - Componentes hijos que tendrán acceso al contexto de autenticación.
+ */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
+  /**
+   * Refresca el estado del usuario consultando /api/auth/me.
+   * Actualiza el estado local con los datos del usuario o null si no hay sesión.
+   */
   const refresh = useCallback(async () => {
     try {
       const res = await fetch('/api/auth/me')
@@ -39,6 +54,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refresh().finally(() => setLoading(false))
   }, [refresh])
 
+  /**
+   * Inicia sesión con email y contraseña.
+   * @returns null si el login fue exitoso, o un string con el mensaje de error.
+   */
   const login = async (email: string, password: string): Promise<string | null> => {
     try {
       const res = await fetch('/api/auth/login', {
@@ -55,6 +74,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  /**
+   * Registra un nuevo usuario con nombre, email y contraseña.
+   * @returns null si el registro fue exitoso, o un string con el mensaje de error.
+   */
   const register = async (name: string, email: string, password: string): Promise<string | null> => {
     try {
       const res = await fetch('/api/auth/register', {
@@ -71,6 +94,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  /**
+   * Cierra la sesión del usuario actual.
+   * Verifica que la sesión se cerró realmente antes de limpiar el estado.
+   * Muestra notificaciones toast con el resultado de la operación.
+   */
   const logout = async () => {
     try {
       const res = await fetch('/api/auth/logout', { method: 'POST' })
@@ -105,6 +133,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 }
 
+/**
+ * Hook para acceder al contexto de autenticación.
+ * Debe usarse dentro de un AuthProvider. Lanza error si se usa fuera.
+ * @returns El contexto de autenticación con usuario, estado de carga y funciones.
+ */
 export function useAuth() {
   const ctx = useContext(AuthContext)
   if (!ctx) throw new Error('useAuth debe usarse dentro de AuthProvider')

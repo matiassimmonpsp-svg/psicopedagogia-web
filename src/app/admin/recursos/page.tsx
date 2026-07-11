@@ -1,55 +1,31 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import toast from 'react-hot-toast'
 import { Search, PlusCircle, X } from 'lucide-react'
 import Link from 'next/link'
 import { courses } from '@/lib/data'
 import ResourceTable from '@/components/ResourceTable'
-import { useCatalog } from '@/lib/hooks'
+import { useCatalog, useResourceActions } from '@/lib/hooks'
+import type { CatalogResource } from '@/lib/data'
 
 export default function AdminResources() {
   const { resources, loading, refresh } = useCatalog()
+  const { handleDelete, handleToggleActive } = useResourceActions(refresh)
   const [search, setSearch] = useState('')
   const [courseFilter, setCourseFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
-
-  async function handleDelete(id: string, title: string) {
-    if (!confirm(`¿Eliminar "${title}"? Esta acción no se puede deshacer.`)) return
-    try {
-      const res = await fetch(`/api/resources/${id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Error al eliminar')
-      refresh()
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Error al eliminar')
-    }
-  }
-
-  async function handleToggleActive(id: string, current: boolean | undefined) {
-    try {
-      const res = await fetch(`/api/resources/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive: !(current ?? true) }),
-      })
-      if (!res.ok) throw new Error('Error')
-      refresh()
-    } catch {
-      toast.error('Error al cambiar estado')
-    }
-  }
 
   const filtered = useMemo(() => {
     let result = resources
     if (search.trim()) {
       const q = search.toLowerCase()
-      result = result.filter((r: any) => r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q))
+      result = result.filter((r: CatalogResource) => r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q))
     }
     if (courseFilter) {
-      result = result.filter((r: any) => r.courseSlug === courseFilter)
+      result = result.filter((r: CatalogResource) => r.courseSlug === courseFilter)
     }
     if (typeFilter) {
-      result = result.filter((r: any) => r.resourceType === typeFilter)
+      result = result.filter((r: CatalogResource) => r.resourceType === typeFilter)
     }
     return result
   }, [resources, search, courseFilter, typeFilter])

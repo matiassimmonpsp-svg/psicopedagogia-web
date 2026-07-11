@@ -1,5 +1,11 @@
 import type { Course, Area, Subarea, Tag, Resource, SocialPost } from './interfaces'
 
+// === Función auxiliar para crear recursos ===
+
+/**
+ * Función auxiliar para crear objetos Resource con valores por defecto.
+ * Simplifica la creación de recursos de prueba en mock-data.
+ */
 function makeResource(
   id: string, title: string, desc: string, courseSlug: string, areaSlug: string,
   free: boolean, price: number | null, tags: string[],
@@ -21,6 +27,9 @@ function makeResource(
   }
 }
 
+// === Datos mockeados: Cursos, Áreas, Subáreas, Tags y Recursos ===
+
+/** Lista de cursos disponibles (Prekínder a 8° Básico) */
 export const courses: Course[] = [
   { id: 1, name: 'Prekínder', slug: 'prekinder', sortOrder: 1 },
   { id: 2, name: 'Kínder', slug: 'kinder', sortOrder: 2 },
@@ -34,12 +43,14 @@ export const courses: Course[] = [
   { id: 10, name: '8° Básico', slug: '8-basico', sortOrder: 10 },
 ]
 
+/** Áreas de conocimiento: lectoescritura, pensamiento lógico-matemático y habilidades cognitivas */
 export const areas: Area[] = [
   { id: 1, name: 'Lectoescritura', slug: 'lectoescritura', sortOrder: 1 },
   { id: 2, name: 'Pensamiento Lógico Matemático', slug: 'pensamiento-logico-matematico', sortOrder: 2 },
   { id: 3, name: 'Habilidades Cognitivas', slug: 'habilidades-cognitivas', sortOrder: 3 },
 ]
 
+/** Subáreas detalladas de cada área de conocimiento */
 export const subareas: Subarea[] = [
   { id: 1, areaId: 1, name: 'Conciencia Fonológica', slug: 'conciencia-fonologica' },
   { id: 2, areaId: 1, name: 'Conciencia Semántica', slug: 'conciencia-semantica' },
@@ -76,6 +87,7 @@ export const subareas: Subarea[] = [
   { id: 33, areaId: 3, name: 'Iniciación de Tareas', slug: 'iniciacion-tareas' },
 ]
 
+/** Tags disponibles para etiquetar recursos */
 export const allTags: Tag[] = [
   { id: 1, name: 'memoria de trabajo', slug: 'memoria-de-trabajo' },
   { id: 2, name: 'atención', slug: 'atencion' },
@@ -99,6 +111,7 @@ export const allTags: Tag[] = [
   { id: 20, name: 'organización', slug: 'organizacion' },
 ]
 
+/** Todos los recursos de la plataforma (evaluaciones y material educativo) */
 export const allResources: Resource[] = [
   // Prekínder
   makeResource('r01', 'Evaluación de Conciencia Fonológica - Prekínder', 'Instrumento diseñado para evaluar el desarrollo de la conciencia fonológica en estudiantes de Prekínder (4-5 años). Incluye actividades de identificación de sonidos iniciales, rimas, segmentación silábica y manipulación de fonemas.', 'prekinder', 'lectoescritura', true, null, ['conciencia fonológica', 'discriminación auditiva']),
@@ -148,6 +161,7 @@ export const allResources: Resource[] = [
   makeResource('r36', 'Guía de Estrategias para Funciones Ejecutivas', 'Manual completo para docentes con más de 25 actividades prácticas.', '3-basico', 'habilidades-cognitivas', true, null, ['funciones ejecutivas', 'planificación'], 'educational', 'planificacion'),
 ]
 
+/** Publicaciones de redes sociales para el widget de Instagram */
 export const socialPosts: SocialPost[] = [
   { id: 1, mediaUrl: '/social/post1.svg', caption: '🧠 ¿Sabías que la conciencia fonológica es la base para la lectoescritura?', permalink: '#', postedAt: '2026-07-01' },
   { id: 2, mediaUrl: '/social/post2.svg', caption: '📢 Nuevo instrumento de evaluación disponible en nuestra plataforma.', permalink: '#', postedAt: '2026-06-28' },
@@ -155,7 +169,11 @@ export const socialPosts: SocialPost[] = [
   { id: 4, mediaUrl: '/social/post4.svg', caption: '📅 No te pierdas nuestro próximo webinar.', permalink: '#', postedAt: '2026-06-20' },
 ]
 
-// Helper functions
+/**
+ * Obtiene un curso por su slug.
+ * @param slug - Identificador URL-friendly del curso.
+ * @returns El curso encontrado o undefined si no existe.
+ */
 export function getCourseBySlug(slug: string): Course | undefined {
   return courses.find(c => c.slug === slug)
 }

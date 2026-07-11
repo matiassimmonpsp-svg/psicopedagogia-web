@@ -9,12 +9,31 @@ import { useAuth } from '@/context/AuthContext'
 import { useCart } from '@/context/CartContext'
 import { formatClp, hasActivePromo, downloadFile } from '@/lib/utils'
 
-export default function ResourceDetail() {
+/** Interfaz para el recurso detallado (respuesta de /api/resources/[id]) */
+interface ResourceDetail {
+  id: string
+  title: string
+  description: string
+  previewPath: string
+  filePath: string
+  editablePath: string | null
+  priceClp: number | null
+  resourceType: string
+  courseId: number
+  promoFreeUntil: string | null
+  isFree: boolean
+  course?: { name: string; slug: string }
+  area?: { name: string; slug: string }
+  tags?: Array<{ tag?: { name: string }; name?: string }>
+}
+
+/** Página de detalle de un recurso individual */
+export default function ResourceDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { user } = useAuth()
   const { addItem, items: cartItems } = useCart()
-  const [resource, setResource] = useState<any>(null)
+  const [resource, setResource] = useState<ResourceDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState(false)
   const [imgError, setImgError] = useState(false)
@@ -27,7 +46,7 @@ export default function ResourceDetail() {
         const data = await res.json()
         setResource(data.resource)
       } catch (err) {
-        console.error('Error loading resource:', err)
+        console.error('Error al cargar recurso:', err)
       } finally {
         setLoading(false)
       }
@@ -48,7 +67,7 @@ export default function ResourceDetail() {
 
   const { title, description, previewPath, filePath, editablePath, priceClp, resourceType, courseId, promoFreeUntil, isFree } = resource
   const promoActive = hasActivePromo(resource)
-  const price = priceClp
+  const price = priceClp ?? 0
 
   const handleDownload = async (type?: string) => {
     if (!user) { router.push('/login'); return }
@@ -69,10 +88,11 @@ export default function ResourceDetail() {
 
   async function handleAddToCart() {
     if (!user) { router.push('/login'); return }
+    if (!resource) return
     const err = await addItem({
       id: resource.id,
       title: resource.title,
-      priceClp: price,
+      priceClp: price ?? 0,
       courseName: resource.course?.name || '',
     })
     if (err) { toast.error(err); return }
@@ -110,9 +130,9 @@ export default function ResourceDetail() {
 
           {resource.tags && Array.isArray(resource.tags) && resource.tags.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {resource.tags.map((t: any) => {
-                const tagName = typeof t === 'string' ? t : t.tag?.name || t.name || ''
-                return tagName ? <span key={tagName} className="badge bg-gray-100 text-gray-600 text-xs">{tagName}</span> : null
+              {resource.tags.map((t, i) => {
+                const tagName = t.tag?.name || t.name || ''
+                return tagName ? <span key={i} className="badge bg-gray-100 text-gray-600 text-xs">{tagName}</span> : null
               })}
             </div>
           )}
@@ -129,7 +149,7 @@ export default function ResourceDetail() {
                       <Clock size={20} /> Gratis por tiempo limitado
                     </p>
                     <p className="text-xs text-gray-400 mt-1">
-                      Promoción válida hasta {new Date(promoFreeUntil).toLocaleDateString('es-CL')}
+                      Promoción válida hasta {promoFreeUntil ? new Date(promoFreeUntil).toLocaleDateString('es-CL') : ''}
                     </p>
                   </div>
                 </div>

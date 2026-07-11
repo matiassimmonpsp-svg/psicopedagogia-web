@@ -9,6 +9,14 @@ import { InstagramWidget } from '@/components/InstagramWidget'
 import type { CatalogResource } from '@/lib/interfaces'
 import { useCatalog } from '@/lib/hooks'
 
+/**
+ * Contenido principal de la página de inicio.
+ *
+ * Carga y muestra los recursos gratuitos destacados (hasta 4) y los recursos
+ * premium destacados (hasta 4), cada uno en su sección con enlace a "Ver todos".
+ * Incluye un widget de Instagram y una sección de suscripción al newsletter.
+ * Muestra estados de carga con placeholders animados (skeleton).
+ */
 export function HomeContent() {
   const { resources, loading, refresh } = useCatalog()
   const [email, setEmail] = useState('')

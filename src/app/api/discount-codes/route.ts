@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { csrfCheck } from '@/lib/csrf'
+import { validateDiscountCode } from '@/lib/discount'
 
 /** GET /api/discount-codes — Lista todos los códigos de descuento */
 export async function GET() {
@@ -19,32 +20,14 @@ export async function POST(request: NextRequest) {
 
     /* Verificar código (público) */
     if (body.action === 'verify') {
-      const { code, cartTotal } = body
-      if (!code) {
-        return NextResponse.json({ error: 'Ingresa un código' }, { status: 400 })
+      const result = await validateDiscountCode(body.code, body.cartTotal)
+      if (!result.valid) {
+        return NextResponse.json({ error: result.error }, { status: 400 })
       }
-
-      const found = await prisma.discountCode.findUnique({ where: { code: code.toUpperCase() } })
-      if (!found) {
-        return NextResponse.json({ error: 'Código no válido' }, { status: 404 })
-      }
-      if (!found.isActive) {
-        return NextResponse.json({ error: 'Este código ya no está activo' }, { status: 400 })
-      }
-      if (found.maxUses && found.usedCount >= found.maxUses) {
-        return NextResponse.json({ error: 'Este código ya alcanzó su límite de usos' }, { status: 400 })
-      }
-      if (found.expiresAt && new Date(found.expiresAt) < new Date()) {
-        return NextResponse.json({ error: 'Este código ha expirado' }, { status: 400 })
-      }
-
-      const discountPercent = found.discountPct
-      const discount = Math.round((cartTotal || 0) * discountPercent / 100)
-
       return NextResponse.json({
-        code: found.code,
-        discount,
-        discountPercent,
+        code: result.code,
+        discount: result.discount,
+        discountPercent: result.discountPercent,
       })
     }
 

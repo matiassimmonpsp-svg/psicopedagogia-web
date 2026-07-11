@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { checkRateLimit } from '@/lib/rate-limit'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 import fs from 'fs'
 import path from 'path'
 
@@ -17,8 +17,7 @@ const MIME_IMG: Record<string, string> = {
 
 /** GET /api/preview/[name] — Sirve imágenes de preview con rate limit y protección path traversal */
 export async function GET(request: NextRequest, { params }: { params: { name: string } }) {
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-    || request.headers.get('x-real-ip') || '127.0.0.1'
+  const ip = getClientIp(request.headers)
   if (!checkRateLimit(`preview:${ip}`, 60, 60_000).allowed) {
     return NextResponse.json({ error: 'Demasiadas solicitudes' }, { status: 429 })
   }

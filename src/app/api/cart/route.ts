@@ -36,6 +36,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Faltan datos' }, { status: 400 })
   }
 
+  /* Verificar si el usuario ya posee este recurso */
+  const yaPosee = await prisma.orderItem.findFirst({
+    where: { resourceId, order: { userId: user.id, status: 'completed' } },
+  })
+  if (yaPosee) {
+    return NextResponse.json({ error: 'Ya posees este recurso' }, { status: 400 })
+  }
+
   /* Busca o crea una orden en estado 'cart' */
   let order = await prisma.order.findFirst({ where: { userId: user.id, status: 'cart' } })
   if (!order) {

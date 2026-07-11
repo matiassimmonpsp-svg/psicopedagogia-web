@@ -1,11 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import toast from 'react-hot-toast'
 import { FileText, Users, ShoppingCart, Download } from 'lucide-react'
 import Link from 'next/link'
 import ResourceTable from '@/components/ResourceTable'
-import { useCatalog } from '@/lib/hooks'
+import { useCatalog, useResourceActions } from '@/lib/hooks'
 
 interface AdminStats {
   users: number
@@ -14,22 +13,12 @@ interface AdminStats {
 
 export default function AdminDashboard() {
   const { resources, loading, refresh } = useCatalog()
+  const { handleDelete } = useResourceActions(refresh)
   const [stats, setStats] = useState<AdminStats>({ users: 0, orders: 0 })
 
   useEffect(() => {
-    fetch('/api/admin/stats').then(r => r.json()).then(setStats).catch(() => {})
+    fetch('/api/admin/stats').then(r => r.json()).then(setStats).catch((err) => console.error('Error al cargar estadísticas:', err))
   }, [])
-
-  async function handleDelete(id: string, title: string) {
-    if (!confirm(`¿Eliminar "${title}"? Esta acción no se puede deshacer.`)) return
-    try {
-      const res = await fetch(`/api/resources/${id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Error al eliminar')
-      refresh()
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Error al eliminar')
-    }
-  }
 
   const cards = [
     { label: 'Recursos totales', value: resources.length, icon: FileText, color: 'text-blue-600 bg-blue-100' },

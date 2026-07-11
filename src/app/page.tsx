@@ -4,6 +4,14 @@ import { courses, areas } from '@/lib/mock-data'
 import { SearchBar } from '@/components/SearchBar'
 import { HomeContent } from '@/components/HomeContent'
 
+/**
+ * Página de inicio de la plataforma.
+ *
+ * Muestra un hero con título, descripción y botones de acción (registro y explorar).
+ * Incluye una barra de búsqueda prominente, tarjetas de características de la plataforma,
+ * botones para filtrar por área de conocimiento, y el contenido dinámico (HomeContent)
+ * con recursos destacados y newsletter.
+ */
 export default function Home() {
   return (
     <>

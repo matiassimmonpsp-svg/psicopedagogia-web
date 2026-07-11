@@ -7,6 +7,15 @@ import { courses } from '@/lib/mock-data'
 import { useAuth } from '@/context/AuthContext'
 import { useCart } from '@/context/CartContext'
 
+/**
+ * Barra de navegación principal de la aplicación.
+ *
+ * Muestra el logo, enlaces de navegación (cursos, catálogo, material educativo, comunidad),
+ * ícono de búsqueda, carrito de compras y menú de usuario (o botón de login).
+ * Incluye un menú hamburguesa responsive para dispositivos móviles.
+ * Muestra badge con la cantidad de items en el carrito.
+ * Si el usuario es admin, incluye acceso al panel de administración.
+ */
 export function Navbar() {
   const { user, loading, logout } = useAuth()
   const { count } = useCart()

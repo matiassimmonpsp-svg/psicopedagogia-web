@@ -1,6 +1,15 @@
 import { allResources } from './mock-data'
 import type { Resource } from './interfaces'
 
+/**
+ * Busca recursos por término de búsqueda.
+ *
+ * Filtra por título, descripción y tags. También devuelve sugerencias:
+ * recursos que no están en los resultados pero comparten tags con ellos.
+ *
+ * @param query - Término de búsqueda (se ignora si está vacío).
+ * @returns Objeto con { results: recursos coincidentes, suggestions: recursos sugeridos }.
+ */
 export function searchResources(query: string): { results: Resource[]; suggestions: Resource[] } {
   const q = query.toLowerCase().trim()
   if (!q) return { results: [], suggestions: [] }

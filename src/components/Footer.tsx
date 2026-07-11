@@ -1,6 +1,13 @@
 import Link from 'next/link'
 import { BookOpen, Heart } from 'lucide-react'
 
+/**
+ * Pie de página de la aplicación.
+ *
+ * Muestra información de la marca (PsicopedagogíaCL), descripción de la plataforma,
+ * enlaces de navegación (Explorar) y enlaces de cuenta (Cuenta).
+ * Incluye mensaje de derechos reservados con año actual.
+ */
 export function Footer() {
   return (
     <footer className="bg-gray-900 text-gray-300 mt-16">

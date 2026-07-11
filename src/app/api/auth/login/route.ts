@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { authenticateUser, signToken } from '@/lib/auth'
-import { checkRateLimit } from '@/lib/rate-limit'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 import { cookies } from 'next/headers'
 
-/** POST /api/auth/login — Inicia sesión y crea cookie */
+/** POST /api/auth/login — Inicia sesión y crea cookie de sesión */
 export async function POST(request: NextRequest) {
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1'
+  const ip = getClientIp(request.headers)
   if (!checkRateLimit(`login:${ip}`, 5, 60_000).allowed) {
     return NextResponse.json({ error: 'Demasiados intentos. Espera 1 minuto.' }, { status: 429 })
   }

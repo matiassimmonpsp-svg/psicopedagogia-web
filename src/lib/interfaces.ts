@@ -44,6 +44,7 @@ export interface Resource {
   areaSlug?: string
   subareaName?: string
   tags: string[]
+  isOwned?: boolean
 }
 
 export interface Tag {
@@ -65,6 +66,7 @@ export interface CatalogResource extends Resource {
   courseSlug?: string
   areaSlug?: string
   subareaSlug?: string
+  isOwned?: boolean
   source?: 'db' | 'mock'
 }
 

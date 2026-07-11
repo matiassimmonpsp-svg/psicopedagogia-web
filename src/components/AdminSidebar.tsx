@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, FileText, PlusCircle, Percent, Users, ChevronLeft, ChevronRight } from 'lucide-react'
 
+/** Links de navegación del panel de administración */
 const links = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/nuevo-recurso', label: 'Nueva Entrada', icon: PlusCircle },
@@ -13,6 +14,14 @@ const links = [
   { href: '/admin/usuarios', label: 'Usuarios', icon: Users },
 ]
 
+/**
+ * Barra lateral del panel de administración.
+ *
+ * Muestra los enlaces de navegación del admin (Dashboard, Nueva Entrada, Recursos,
+ * Descuentos, Usuarios). Resalta el enlace activo según la ruta actual.
+ * Se puede colapsar/expandir mediante un botón toggle, mostrando solo iconos
+ * cuando está colapsada. Solo es visible en pantallas medianas o superiores (md+).
+ */
 export function AdminSidebar() {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)

@@ -7,7 +7,9 @@ import toast from 'react-hot-toast'
 import { CreditCard, Shield, ArrowLeft, ShoppingBag, Percent, Loader2 } from 'lucide-react'
 import { formatClp } from '@/lib/utils'
 import { useCart } from '@/context/CartContext'
+import { loadDiscountFromSession, clearDiscountFromSession } from '@/lib/discount-storage'
 
+/** Página de checkout - selección de método de pago y confirmación */
 export default function CheckoutPage() {
   const router = useRouter()
   const { items, subtotal, clearCart } = useCart()
@@ -18,13 +20,11 @@ export default function CheckoutPage() {
   const [paying, setPaying] = useState(false)
 
   useEffect(() => {
-    const savedCode = sessionStorage.getItem('discountCode')
-    const savedDiscount = sessionStorage.getItem('discountAmount')
-    const savedPercent = sessionStorage.getItem('discountPercent')
-    if (savedCode && savedDiscount) {
-      setDiscountCode(savedCode)
-      setDiscount(Number(savedDiscount))
-      setDiscountPercent(Number(savedPercent) || 0)
+    const saved = loadDiscountFromSession()
+    if (saved) {
+      setDiscountCode(saved.code)
+      setDiscount(saved.amount)
+      setDiscountPercent(saved.percent)
     }
   }, [])
 
@@ -49,9 +49,7 @@ export default function CheckoutPage() {
         return
       }
       await clearCart()
-      sessionStorage.removeItem('discountCode')
-      sessionStorage.removeItem('discountAmount')
-      sessionStorage.removeItem('discountPercent')
+      clearDiscountFromSession()
       toast.success('¡Compra realizada con éxito!')
       router.push('/mis-descargas')
     } catch {

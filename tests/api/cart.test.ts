@@ -175,7 +175,11 @@ describe('POST /api/cart', () => {
   it('returns message when item already in cart', async () => {
     vi.spyOn(auth, 'getSession').mockResolvedValue(mockUser)
     vi.mocked(prisma.order.findFirst).mockResolvedValue({ id: 'o1', totalClp: 5000, status: 'cart' } as any)
-    vi.mocked(prisma.orderItem.findFirst).mockResolvedValue({ id: 1, resourceId: 'r1' } as any)
+    /* Mock findFirst: null para ownership check, resultado para duplicate check */
+    vi.mocked(prisma.orderItem.findFirst).mockImplementation(async (args: any) => {
+      if (args?.where?.order) return null  /* ownership check */
+      return { id: 1, resourceId: 'r1' } as any  /* duplicate check */
+    })
 
     const req = makeCartRequest({ resourceId: 'r1', priceClp: 5000 }, 'POST')
     const res = await cartPOST(req as any)
