@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { ExternalLink, Instagram } from 'lucide-react'
 import type { SocialPost } from '@/lib/data'
+import { logger } from '@/lib/logger'
 
 const INSTAGRAM_USER = process.env.NEXT_PUBLIC_INSTAGRAM_USER || 'siimon.psp'
 
@@ -17,7 +18,7 @@ export function InstagramWidget() {
         setPosts(data.posts || [])
         setSource(data.source || 'mock')
       })
-      .catch((err) => console.error('Error fetching Instagram posts:', err))
+      .catch((err) => logger.error('Error fetching Instagram posts', { error: err }))
   }, [])
 
   if (posts.length === 0) return null

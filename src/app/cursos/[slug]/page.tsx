@@ -5,7 +5,7 @@ import { useMemo } from 'react'
 import { notFound } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { ResourceCard } from '@/components/ResourceCard'
-import { courses, areas, subareas, getCourseBySlug, type CatalogResource } from '@/lib/data'
+import { courses, areas, subareas, getCourseBySlug, type Resource } from '@/lib/data'
 import type { Subarea } from '@/lib/data'
 import { useCatalog } from '@/lib/hooks'
 import { useAuth } from '@/context/AuthContext'
@@ -22,7 +22,7 @@ export default function CoursePage({ params, searchParams }: { params: { slug: s
 
   const resources = useMemo(() => {
     if (!course) return []
-    return allCatalog.filter((r: CatalogResource) => r.courseSlug === course.slug && (isAdmin || r.isActive !== false))
+    return allCatalog.filter((r: Resource) => r.courseSlug === course.slug && (isAdmin || r.isActive !== false))
   }, [allCatalog, course, isAdmin])
 
   if (!course) notFound()
@@ -34,7 +34,7 @@ export default function CoursePage({ params, searchParams }: { params: { slug: s
     ? subareas.find((s: Subarea) => s.slug === selectedSubareaSlug && s.areaId === selectedArea.id)
     : null
 
-  const filteredResources = resources.filter((r: CatalogResource) => {
+  const filteredResources = resources.filter((r: Resource) => {
     if (selectedAreaSlug && r.areaSlug !== selectedAreaSlug) return false
     if (selectedSubareaSlug && r.subareaSlug !== selectedSubareaSlug) return false
     return true
@@ -83,7 +83,7 @@ export default function CoursePage({ params, searchParams }: { params: { slug: s
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-          {filteredResources.map((r: CatalogResource) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} onUpdateResource={updateResource} />)}
+          {filteredResources.map((r: Resource) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} onUpdateResource={updateResource} />)}
         </div>
       )}
     </div>

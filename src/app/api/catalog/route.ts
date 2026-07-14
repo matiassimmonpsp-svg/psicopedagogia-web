@@ -4,7 +4,8 @@ import { getSession } from '@/lib/auth'
 import { allResources as mockResources, courses as mockCourses, areas as mockAreas, subareas as mockSubareas } from '@/lib/data'
 
 /**
- * GET /api/catalog — Devuelve todos los recursos combinando BD + mock data.
+ * GET /api/catalog — Devuelve todos los recursos desde la BD.
+ * En desarrollo (NODE_ENV !== 'production'), incluye mock data como fallback.
  * Si el usuario está autenticado, incluye `isOwned` para cada recurso.
  */
 export async function GET(request: Request) {
@@ -64,13 +65,16 @@ export async function GET(request: Request) {
       isOwned: ownedResourceIds.has(r.id),
       source: 'db' as const,
     })),
-    ...mockResources.filter(m => !dbResources.some(d => d.id === m.id)).map(m => ({
-      ...m,
-      courseSlug: mockCourses.find(c => c.id === m.courseId)?.slug || null,
-      areaSlug: mockAreas.find(a => a.id === m.areaId)?.slug || null,
-      isOwned: false,
-      source: 'mock' as const,
-    })),
+    // Mock data solo en desarrollo
+    ...(process.env.NODE_ENV !== 'production'
+      ? mockResources.filter(m => !dbResources.some(d => d.id === m.id)).map(m => ({
+          ...m,
+          courseSlug: mockCourses.find(c => c.id === m.courseId)?.slug || null,
+          areaSlug: mockAreas.find(a => a.id === m.areaId)?.slug || null,
+          isOwned: false,
+          source: 'mock' as const,
+        }))
+      : []),
   ]
 
   const total = combined.length

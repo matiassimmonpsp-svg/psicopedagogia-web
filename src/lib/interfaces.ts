@@ -23,12 +23,17 @@ export interface Subarea {
   slug: string
 }
 
+// ============================================================
+// Recurso unificado — usado en catálogo, detalle, carrito, etc.
+// Combina lo que antes eran Resource + CatalogResource + ResourceDetail
+// ============================================================
 export interface Resource {
   id: string
   title: string
   description: string
   filePath: string
   previewPath: string
+  editablePath?: string | null
   resourceType: 'evaluation' | 'educational'
   isFree: boolean
   priceClp: number | null
@@ -38,13 +43,18 @@ export interface Resource {
   subareaId: number | null
   downloadsCount: number
   isActive?: boolean
-  courseName?: string
-  courseSlug?: string
-  areaName?: string
-  areaSlug?: string
-  subareaName?: string
-  tags: string[]
   isOwned?: boolean
+  createdAt?: string
+  updatedAt?: string
+  // Relaciones planas para el frontend
+  courseName: string
+  courseSlug?: string
+  areaName: string
+  areaSlug?: string
+  subareaName?: string | null
+  subareaSlug?: string | null
+  tags: string[]
+  source?: 'db' | 'mock'
 }
 
 export interface Tag {
@@ -61,18 +71,9 @@ export interface SocialPost {
   postedAt: string
 }
 
-/** Resource shape returned by /api/catalog (includes slugs for filtering) */
-export interface CatalogResource extends Resource {
-  courseSlug?: string
-  areaSlug?: string
-  subareaSlug?: string
-  isOwned?: boolean
-  source?: 'db' | 'mock'
-}
-
 // Tipos compartidos para el carrito de compras
 export interface CartItem {
-  id: string       // ID del recurso
+  id: string
   title: string
   priceClp: number
   courseName: string

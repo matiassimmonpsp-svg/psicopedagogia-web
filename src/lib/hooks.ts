@@ -1,7 +1,7 @@
 import useSWR from 'swr'
 import { useCallback, useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
-import type { CatalogResource } from '@/lib/data'
+import type { Resource } from '@/lib/data'
 import { useAuth } from '@/context/AuthContext'
 
 /** Fetcher que incluye cookies de sesión para autenticación */
@@ -16,12 +16,12 @@ export function useCatalog() {
     dedupingInterval: 60_000,
   })
 
-  const updateResource = useCallback((id: string, updates: Partial<CatalogResource>) => {
+  const updateResource = useCallback((id: string, updates: Partial<Resource>) => {
     mutate((current: any) => {
       if (!current?.resources) return current
       return {
         ...current,
-        resources: current.resources.map((r: CatalogResource) =>
+        resources: current.resources.map((r: Resource) =>
           r.id === id ? { ...r, ...updates } : r
         ),
       }

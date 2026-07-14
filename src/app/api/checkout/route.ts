@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { csrfCheck } from '@/lib/csrf'
 import { validateDiscountCode } from '@/lib/discount'
+import { logger } from '@/lib/logger'
 
 /** POST /api/checkout — Convierte el carrito en una orden pagada */
 export async function POST(request: NextRequest) {
@@ -101,7 +102,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, orderId: order[0].id })
   } catch (err: unknown) {
-    console.error('Error en checkout:', err instanceof Error ? err.message : err)
+    logger.error('Error en checkout', { error: err instanceof Error ? err.message : err })
     return NextResponse.json({ error: 'Error al procesar el pago' }, { status: 500 })
   }
 }

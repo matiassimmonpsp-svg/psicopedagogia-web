@@ -14,5 +14,21 @@ export default defineConfig({
     exclude: ['**/node_modules/**', '**/tests/e2e/**'],
     globals: true,
     setupFiles: ['./tests/setup.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/**',
+        'tests/**',
+        '**/*.d.ts',
+        '**/*.config.*',
+        'src/lib/mock-data.ts',
+        'src/app/**/layout.tsx',
+        'src/app/**/page.tsx',
+        'src/app/**/loading.tsx',
+        'src/app/**/error.tsx',
+        'src/app/**/not-found.tsx',
+      ],
+    },
   },
 })

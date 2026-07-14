@@ -5,7 +5,7 @@ import { ResourceCard } from '@/components/ResourceCard'
 import { normalizeText, expandSearchQuery } from '@/lib/utils'
 import { useCatalog } from '@/lib/hooks'
 import { useAuth } from '@/context/AuthContext'
-import type { CatalogResource } from '@/lib/data'
+import type { Resource } from '@/lib/data'
 
 export default function SearchPage({ searchParams }: { searchParams: { q?: string; area?: string; gratis?: string; premium?: string } }) {
   const { resources: allResources, loading, refresh, updateResource } = useCatalog()
@@ -19,10 +19,10 @@ export default function SearchPage({ searchParams }: { searchParams: { q?: strin
 
   const queries = query ? expandSearchQuery(normalizeText(query)) : []
 
-  const visibleResources = allResources.filter((r: CatalogResource) => isAdmin || r.isActive !== false)
+  const visibleResources = allResources.filter((r: Resource) => isAdmin || r.isActive !== false)
 
   let results = query
-    ? visibleResources.filter((r: CatalogResource) => {
+    ? visibleResources.filter((r: Resource) => {
         const nTitle = normalizeText(r.title)
         const nDesc = normalizeText(r.description)
         const nCourse = normalizeText(r.courseName || '')
@@ -34,12 +34,12 @@ export default function SearchPage({ searchParams }: { searchParams: { q?: strin
       })
     : visibleResources
 
-  let suggestions: CatalogResource[] = []
+  let suggestions: Resource[] = []
 
   if (query) {
-    const resultTagSet = new Set(results.flatMap((r: CatalogResource) => r.tags || []))
-    const resultIds = new Set(results.map((r: CatalogResource) => r.id))
-    suggestions = visibleResources.filter((r: CatalogResource) =>
+    const resultTagSet = new Set(results.flatMap((r: Resource) => r.tags || []))
+    const resultIds = new Set(results.map((r: Resource) => r.id))
+    suggestions = visibleResources.filter((r: Resource) =>
       !resultIds.has(r.id) &&
       (r.tags || []).some((t: string) => resultTagSet.has(t))
     ).slice(0, 8)
@@ -47,15 +47,15 @@ export default function SearchPage({ searchParams }: { searchParams: { q?: strin
 
   if (areaSlug) {
     results = results.filter((r: CatalogResource) => r.areaSlug === areaSlug)
-    suggestions = suggestions.filter((r: CatalogResource) => r.areaSlug === areaSlug)
+    suggestions = suggestions.filter((r: Resource) => r.areaSlug === areaSlug)
   }
   if (gratisFilter) {
     results = results.filter((r: CatalogResource) => r.isFree)
-    suggestions = suggestions.filter((r: CatalogResource) => r.isFree)
+    suggestions = suggestions.filter((r: Resource) => r.isFree)
   }
   if (premiumFilter) {
     results = results.filter((r: CatalogResource) => !r.isFree)
-    suggestions = suggestions.filter((r: CatalogResource) => !r.isFree)
+    suggestions = suggestions.filter((r: Resource) => !r.isFree)
   }
 
   return (
@@ -86,14 +86,14 @@ export default function SearchPage({ searchParams }: { searchParams: { q?: strin
             <>
               {query && <h2 className="section-title mb-4">Resultados</h2>}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-                {results.map((r: CatalogResource) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} onUpdateResource={updateResource} />)}
+                {results.map((r: Resource) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} onUpdateResource={updateResource} />)}
               </div>
 
               {suggestions.length > 0 && (
                 <>
                   <h2 className="section-title mt-12 mb-4">Te puede interesar</h2>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {suggestions.map((r: CatalogResource) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} onUpdateResource={updateResource} />)}
+                    {suggestions.map((r: Resource) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} onUpdateResource={updateResource} />)}
                   </div>
                 </>
               )}

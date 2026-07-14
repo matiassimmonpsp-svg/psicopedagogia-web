@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { ResourceCard } from '@/components/ResourceCard'
-import { courses, areas, type CatalogResource } from '@/lib/data'
+import { courses, areas, type Resource } from '@/lib/data'
 import { normalizeText, expandSearchQuery } from '@/lib/utils'
 import { Search, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCatalog } from '@/lib/hooks'
@@ -24,7 +24,7 @@ export default function CatalogoPage() {
 
   const hasFilters = courseSlug || areaSlug || typeFilter || priceFilter || searchQuery
 
-  const results = allResources.filter((r: CatalogResource) => {
+  const results = allResources.filter((r: Resource) => {
     if (!isAdmin && r.isActive === false) return false
     if (courseSlug && r.courseSlug !== courseSlug) return false
     if (areaSlug && r.areaSlug !== areaSlug) return false
@@ -203,7 +203,7 @@ export default function CatalogoPage() {
           ) : (
             <>
               <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-6">
-                {paginatedResults.map((r: CatalogResource) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} onUpdateResource={updateResource} />)}
+                {paginatedResults.map((r: Resource) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} onUpdateResource={updateResource} />)}
               </div>
               {totalPages > 1 && (
                 <div className="flex items-center justify-center gap-2 mt-8">

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { X, Plus, Lightbulb, Tag } from 'lucide-react'
+import { logger } from '@/lib/logger'
 
 const TAG_SUGGESTIONS: Record<string, string[]> = {
   '1_1': ['conciencia fonológica', 'discriminación auditiva', 'vocabulario', 'conciencia semántica'],
@@ -57,7 +58,7 @@ export function TagInput({ value, onChange, courseId, areaId }: TagInputProps) {
     fetch('/api/tags')
       .then(r => r.json())
       .then(d => setAllTags(d.tags?.map((t: { name: string }) => t.name) || []))
-      .catch((err) => console.error('Error fetching tags:', err))
+      .catch((err) => logger.error('Error fetching tags', { error: err }))
   }, [])
 
   useEffect(() => {

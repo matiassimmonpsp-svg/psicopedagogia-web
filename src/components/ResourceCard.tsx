@@ -9,6 +9,7 @@ import { Download, Coffee, BookOpen, Clock, Edit, Pause, Play, Trash2 } from 'lu
 import type { Resource } from '@/lib/data'
 import { formatClp, hasActivePromo } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
+import { logger } from '@/lib/logger'
 
 /** Tarjeta de recurso reutilizada en catálogo, admin y detalle */
 interface ResourceCardProps {
@@ -53,7 +54,7 @@ export const ResourceCard = memo(function ResourceCard({ resource, onUpdate, onU
         onUpdate?.()
       }
     } catch (err) {
-      console.error('Error al cambiar estado del recurso:', err)
+      logger.error('Error al cambiar estado del recurso', { error: err, resourceId: resource.id })
       toast.error(err instanceof Error ? err.message : 'Error al cambiar estado')
     }
   }
@@ -68,7 +69,7 @@ export const ResourceCard = memo(function ResourceCard({ resource, onUpdate, onU
       if (!res.ok) throw new Error(data.error || 'Error al eliminar')
       onUpdate?.()
     } catch (err) {
-      console.error('Error al eliminar recurso:', err)
+      logger.error('Error al eliminar recurso', { error: err, resourceId: resource.id })
       toast.error(err instanceof Error ? err.message : 'Error al eliminar')
     }
   }

@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import { useAuth } from './AuthContext'
 import type { CartItem } from '@/lib/data'
+import { logger } from '@/lib/logger'
 
 interface CartContextType {
   items: CartItem[]
@@ -46,10 +47,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const data = await res.json()
         setItems(data.items || [])
       }
-    } catch (err) {
-      console.error('Error al cargar carrito:', err)
-      setItems([])
-    }
+} catch (err) {
+        logger.error('Error al cargar carrito', { error: err })
+      }
     finally { setLoading(false) }
   }, [user])
 
@@ -97,9 +97,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       await fetch(`/api/cart/${id}`, { method: 'DELETE' })
       await fetchCart()
-    } catch (err) {
-      console.error('Error al eliminar del carrito:', err)
-    }
+} catch (err) {
+        logger.error('Error al eliminar del carrito', { error: err })
+      }
   }, [user, items, fetchCart, guardarLocal])
 
   const clearCart = useCallback(async () => {
@@ -113,9 +113,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       await fetch('/api/cart/clear', { method: 'DELETE' })
       await fetchCart()
-    } catch (err) {
-      console.error('Error al vaciar carrito:', err)
-    }
+} catch (err) {
+        logger.error('Error al vaciar carrito', { error: err })
+      }
   }, [user, fetchCart])
 
   const count = items.length

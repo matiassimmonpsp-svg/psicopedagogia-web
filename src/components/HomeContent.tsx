@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 import { ArrowRight } from 'lucide-react'
 import { ResourceCard } from '@/components/ResourceCard'
 import { InstagramWidget } from '@/components/InstagramWidget'
-import type { CatalogResource } from '@/lib/interfaces'
+import type { Resource } from '@/lib/interfaces'
 import { useCatalog } from '@/lib/hooks'
 import { useAuth } from '@/context/AuthContext'
 
@@ -24,9 +24,9 @@ export function HomeContent() {
   const isAdmin = user?.role === 'admin'
   const [email, setEmail] = useState('')
 
-  const visibleResources = resources.filter((r: CatalogResource) => isAdmin || r.isActive !== false)
-  const featuredResources = visibleResources.filter((r: CatalogResource) => r.isFree).slice(0, 4)
-  const premiumResources = visibleResources.filter((r: CatalogResource) => !r.isFree).slice(0, 4)
+  const visibleResources = resources.filter((r: Resource) => isAdmin || r.isActive !== false)
+  const featuredResources = visibleResources.filter((r: Resource) => r.isFree).slice(0, 4)
+  const premiumResources = visibleResources.filter((r: Resource) => !r.isFree).slice(0, 4)
 
   return (
     <>
@@ -45,7 +45,7 @@ export function HomeContent() {
                 <Link href="/buscar?gratis=true" className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">Ver todos <ArrowRight size={14} /></Link>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-                {featuredResources.map((r: CatalogResource) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} onUpdateResource={updateResource} />)}
+                {featuredResources.map((r: Resource) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} onUpdateResource={updateResource} />)}
               </div>
             </section>
           )}
@@ -58,7 +58,7 @@ export function HomeContent() {
                   <Link href="/buscar?premium=true" className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">Ver todos <ArrowRight size={14} /></Link>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {premiumResources.map((r: CatalogResource) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} onUpdateResource={updateResource} />)}
+                  {premiumResources.map((r: Resource) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} onUpdateResource={updateResource} />)}
                 </div>
               </div>
             </section>

@@ -8,26 +8,8 @@ import { ArrowLeft, Download, BookOpen, Lock, ShoppingCart, Clock, Loader2, Shie
 import { useAuth } from '@/context/AuthContext'
 import { useCart } from '@/context/CartContext'
 import { formatClp, hasActivePromo, downloadFile } from '@/lib/utils'
-
-/** Interfaz para el recurso detallado (respuesta de /api/resources/[id]) */
-interface ResourceDetail {
-  id: string
-  title: string
-  description: string
-  previewPath: string
-  filePath: string
-  editablePath: string | null
-  priceClp: number | null
-  resourceType: string
-  courseId: number
-  promoFreeUntil: string | null
-  isFree: boolean
-  isOwned: boolean
-  isActive: boolean
-  course?: { name: string; slug: string }
-  area?: { name: string; slug: string }
-  tags?: Array<{ tag?: { name: string }; name?: string }>
-}
+import { logger } from '@/lib/logger'
+import type { Resource } from '@/lib/data'
 
 /** Página de detalle de un recurso individual */
 export default function ResourceDetailPage() {
@@ -35,7 +17,7 @@ export default function ResourceDetailPage() {
   const router = useRouter()
   const { user } = useAuth()
   const { addItem, items: cartItems } = useCart()
-  const [resource, setResource] = useState<ResourceDetail | null>(null)
+  const [resource, setResource] = useState<Resource | null>(null)
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState(false)
   const [imgError, setImgError] = useState(false)
@@ -46,10 +28,21 @@ export default function ResourceDetailPage() {
       try {
         const res = await fetch(`/api/resources/${params.id}`)
         const data = await res.json()
-        setResource(data.resource)
-      } catch (err) {
-        console.error('Error al cargar recurso:', err)
-      } finally {
+        // Transforma la respuesta anidada de la API a Resource plano
+        const api = data.resource
+        if (api) {
+          setResource({
+            ...api,
+            courseName: api.course?.name || '',
+            courseSlug: api.course?.slug || '',
+            areaName: api.area?.name || '',
+            areaSlug: api.area?.slug || '',
+            tags: Array.isArray(api.tags) ? api.tags.map((t: any) => t.tag?.name || t.name || '') : [],
+          })
+        }
+} catch (err) {
+          logger.error('Error al cargar recurso', { error: err })
+        } finally {
         setLoading(false)
       }
     }
@@ -95,7 +88,7 @@ export default function ResourceDetailPage() {
       id: resource.id,
       title: resource.title,
       priceClp: price ?? 0,
-      courseName: resource.course?.name || '',
+      courseName: resource.courseName,
     })
     if (err) { toast.error(err); return }
     setAddedToCart(true)
@@ -103,8 +96,8 @@ export default function ResourceDetailPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <Link href={resource.course ? `/cursos/${resource.course.slug}` : '/'} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-primary-600 mb-6">
-        <ArrowLeft size={14} /> Volver a {resource.course?.name || 'recursos'}
+      <Link href={resource.courseSlug ? `/cursos/${resource.courseSlug}` : '/'} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-primary-600 mb-6">
+        <ArrowLeft size={14} /> Volver a {resource.courseName || 'recursos'}
       </Link>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -123,18 +116,17 @@ export default function ResourceDetailPage() {
 
         <div className="md:col-span-2 space-y-6">
           <div>
-            {resource.course && (
-              <p className="text-sm text-primary-600 font-medium mb-1">{resource.course.name}</p>
+            {resource.courseName && (
+              <p className="text-sm text-primary-600 font-medium mb-1">{resource.courseName}</p>
             )}
             <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
             <p className="text-gray-600 mt-2 leading-relaxed break-words">{description}</p>
           </div>
 
-          {resource.tags && Array.isArray(resource.tags) && resource.tags.length > 0 && (
+          {resource.tags && resource.tags.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {resource.tags.map((t, i) => {
-                const tagName = t.tag?.name || t.name || ''
-                return tagName ? <span key={i} className="badge bg-gray-100 text-gray-600 text-xs">{tagName}</span> : null
+              {resource.tags.map((tagName, i) => (
+                tagName ? <span key={i} className="badge bg-gray-100 text-gray-600 text-xs">{tagName}</span> : null
               })}
             </div>
           )}

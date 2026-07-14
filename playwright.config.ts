@@ -9,6 +9,7 @@ export default defineConfig({
     baseURL: 'http://localhost:3000',
     headless: true,
     screenshot: 'only-on-failure',
+    trace: 'on-first-retry',
   },
   webServer: {
     command: 'npx next dev -p 3000',

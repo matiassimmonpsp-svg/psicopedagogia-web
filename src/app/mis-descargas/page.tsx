@@ -9,6 +9,7 @@ import { useAuth } from '@/context/AuthContext'
 import { courses, areas } from '@/lib/data'
 import { downloadFile } from '@/lib/utils'
 import type { DownloadItem } from '@/lib/data'
+import { logger } from '@/lib/logger'
 
 export default function DownloadsPage() {
   const { user, loading: authLoading } = useAuth()
@@ -34,7 +35,7 @@ export default function DownloadsPage() {
           const data = await res.json()
           setDownloads(data.downloads || [])
         }
-      } catch (err) { console.error('Error al cargar descargas:', err) } finally {
+      } catch (err) { logger.error('Error al cargar descargas', { error: err }) } finally {
         setLoading(false)
       }
     }

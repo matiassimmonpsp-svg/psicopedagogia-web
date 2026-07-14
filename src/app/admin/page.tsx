@@ -5,6 +5,7 @@ import { FileText, Users, ShoppingCart, Download } from 'lucide-react'
 import Link from 'next/link'
 import ResourceTable from '@/components/ResourceTable'
 import { useCatalog, useResourceActions } from '@/lib/hooks'
+import { logger } from '@/lib/logger'
 
 interface AdminStats {
   users: number
@@ -17,7 +18,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<AdminStats>({ users: 0, orders: 0 })
 
   useEffect(() => {
-    fetch('/api/admin/stats').then(r => r.json()).then(setStats).catch((err) => console.error('Error al cargar estadísticas:', err))
+    fetch('/api/admin/stats').then(r => r.json()).then(setStats).catch((err) => logger.error('Error al cargar estadísticas', { error: err }))
   }, [])
 
   const cards = [

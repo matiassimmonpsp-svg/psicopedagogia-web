@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { upsertTags } from '@/lib/utils'
+import { upsertTags } from '@/lib/utils-server'
 import { csrfCheck } from '@/lib/csrf'
 
 /** POST /api/resources — Crea un nuevo recurso (solo admin) */

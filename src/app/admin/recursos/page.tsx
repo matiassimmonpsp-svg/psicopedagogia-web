@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { courses } from '@/lib/data'
 import ResourceTable from '@/components/ResourceTable'
 import { useCatalog, useResourceActions } from '@/lib/hooks'
-import type { CatalogResource } from '@/lib/data'
+import type { Resource } from '@/lib/data'
 
 export default function AdminResources() {
   const { resources, loading, refresh } = useCatalog()
@@ -19,13 +19,13 @@ export default function AdminResources() {
     let result = resources
     if (search.trim()) {
       const q = search.toLowerCase()
-      result = result.filter((r: CatalogResource) => r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q))
+      result = result.filter((r: Resource) => r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q))
     }
     if (courseFilter) {
-      result = result.filter((r: CatalogResource) => r.courseSlug === courseFilter)
+      result = result.filter((r: Resource) => r.courseSlug === courseFilter)
     }
     if (typeFilter) {
-      result = result.filter((r: CatalogResource) => r.resourceType === typeFilter)
+      result = result.filter((r: Resource) => r.resourceType === typeFilter)
     }
     return result
   }, [resources, search, courseFilter, typeFilter])

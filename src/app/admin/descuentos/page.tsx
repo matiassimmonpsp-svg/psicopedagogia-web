@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { Plus, Trash2, Copy, Check, Tag, Edit3, Power, PowerOff } from 'lucide-react'
+import { logger } from '@/lib/logger'
 
 interface DiscountCode {
   id: number
@@ -34,8 +35,8 @@ export default function AdminDiscountCodes() {
       const res = await fetch('/api/discount-codes')
       const data = await res.json()
       setCodes(data.codes || [])
-    } catch {
-      console.error('Error fetching codes')
+    } catch (err) {
+      logger.error('Error fetching codes', { error: err })
     } finally {
       setLoading(false)
     }

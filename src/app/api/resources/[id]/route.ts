@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession, requireAdmin } from '@/lib/auth'
-import { upsertTags } from '@/lib/utils'
+import { upsertTags } from '@/lib/utils-server'
 import { csrfCheck } from '@/lib/csrf'
 import { unlink } from 'fs/promises'
 import { join } from 'path'
