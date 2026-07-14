@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
+import { useSWRConfig } from 'swr'
 import type { AuthUser } from '@/lib/auth'
 
 /** Tipo del contexto de autenticación */
@@ -31,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
+  const { cache } = useSWRConfig()
 
   /**
    * Refresca el estado del usuario consultando /api/auth/me.
@@ -67,6 +69,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       const data = await res.json()
       if (!res.ok) return data.error || 'Error al iniciar sesión'
+      // Limpiar caché SWR del catálogo antes de refresh para que no sirva datos del usuario anterior
+      Array.from(cache.keys()).forEach(key => {
+        if (typeof key === 'string' && key.startsWith('/api/catalog')) cache.delete(key)
+      })
       await refresh()
       return null
     } catch {
@@ -87,6 +93,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       const data = await res.json()
       if (!res.ok) return data.error || 'Error al registrarse'
+      Array.from(cache.keys()).forEach(key => {
+        if (typeof key === 'string' && key.startsWith('/api/catalog')) cache.delete(key)
+      })
       await refresh()
       return null
     } catch {
@@ -119,6 +128,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setUser(null)
       toast.success('Sesión cerrada')
+      Array.from(cache.keys()).forEach(key => {
+        if (typeof key === 'string' && key.startsWith('/api/catalog')) cache.delete(key)
+      })
       router.push('/')
       router.refresh()
     } catch {

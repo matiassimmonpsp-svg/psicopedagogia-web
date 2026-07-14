@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
-import { Download, FileText, Clock, Loader2, Sparkles, Gift, Search, ExternalLink, BookOpen, X } from 'lucide-react'
+import { Download, FileText, Clock, Loader2, Sparkles, Gift, Search, ExternalLink, BookOpen, X, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
 import { courses, areas } from '@/lib/data'
@@ -325,19 +325,22 @@ function ItemRow({ item, downloadingId, onDownload }: {
 }) {
   const isDownloading = downloadingId === item.id
   const isPurchased = item.type === 'purchased'
+  const isPaused = item.isActive === false
 
   return (
-    <div className="card p-5 flex items-center justify-between gap-4">
+    <div className={`card p-5 flex items-center justify-between gap-4 ${isPaused ? 'border-amber-200 bg-amber-50/50' : ''}`}>
       <div className="flex items-center gap-4 min-w-0 flex-1">
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${isPurchased ? 'bg-primary-100' : 'bg-emerald-100'}`}>
-          {isPurchased
-            ? <FileText size={24} className="text-primary-600" />
-            : <BookOpen size={24} className="text-emerald-600" />
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${isPaused ? 'bg-amber-100' : isPurchased ? 'bg-primary-100' : 'bg-emerald-100'}`}>
+          {isPaused
+            ? <AlertTriangle size={24} className="text-amber-600" />
+            : isPurchased
+              ? <FileText size={24} className="text-primary-600" />
+              : <BookOpen size={24} className="text-emerald-600" />
           }
         </div>
         <div className="min-w-0">
-          <h3 className="text-base font-medium text-gray-900 truncate">{item.title}</h3>
-          <p className="text-sm text-gray-500 flex items-center gap-1.5 mt-0.5">
+          <h3 className={`text-base font-medium truncate ${isPaused ? 'text-amber-800' : 'text-gray-900'}`}>{item.title}</h3>
+          <p className={`text-sm flex items-center gap-1.5 mt-0.5 ${isPaused ? 'text-amber-600' : 'text-gray-500'}`}>
             <Clock size={13} />
             {new Date(item.date).toLocaleDateString('es-CL', {
               day: 'numeric', month: 'long', year: 'numeric'
@@ -349,6 +352,11 @@ function ItemRow({ item, downloadingId, onDownload }: {
               </>
             )}
           </p>
+          {isPaused && (
+            <p className="text-xs text-amber-600 mt-1 font-medium">
+              Recurso en revisión — Volverá a estar disponible pronto.
+            </p>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0">
@@ -359,14 +367,20 @@ function ItemRow({ item, downloadingId, onDownload }: {
         >
           <ExternalLink size={16} /> Ver
         </Link>
-        <button
-          onClick={() => onDownload(item)}
-          disabled={isDownloading}
-          className="btn-primary inline-flex items-center gap-1.5 disabled:opacity-50"
-        >
-          {isDownloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-          {isDownloading ? 'Descargando...' : 'Descargar'}
-        </button>
+        {isPaused ? (
+          <span className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-amber-700 bg-amber-100 rounded-lg border border-amber-200 cursor-not-allowed">
+            <AlertTriangle size={16} /> No disponible
+          </span>
+        ) : (
+          <button
+            onClick={() => onDownload(item)}
+            disabled={isDownloading}
+            className="btn-primary inline-flex items-center gap-1.5 disabled:opacity-50"
+          >
+            {isDownloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+            {isDownloading ? 'Descargando...' : 'Descargar'}
+          </button>
+        )}
       </div>
     </div>
   )

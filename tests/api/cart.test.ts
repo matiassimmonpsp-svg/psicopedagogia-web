@@ -13,6 +13,9 @@ vi.mock('@/lib/prisma', () => ({
       create: vi.fn(),
       deleteMany: vi.fn(),
     },
+    resource: {
+      findUnique: vi.fn().mockResolvedValue({ id: 'r1', isActive: true }),
+    },
   },
 }))
 
@@ -204,6 +207,31 @@ describe('POST /api/cart', () => {
       where: { id: 'o1' },
       data: { totalClp: 8000 },
     })
+  })
+
+  it('blocks adding a paused resource (isActive=false)', async () => {
+    vi.spyOn(auth, 'getSession').mockResolvedValue(mockUser)
+    vi.mocked(prisma.orderItem.findFirst).mockResolvedValue(null)
+    vi.mocked(prisma.resource.findUnique).mockResolvedValue({ id: 'r1', isActive: false } as any)
+    const req = makeCartRequest({ resourceId: 'r1', priceClp: 5000 }, 'POST')
+    const res = await cartPOST(req as any)
+    const data = await res.json()
+    expect(res.status).toBe(400)
+    expect(data.error).toContain('no está disponible')
+  })
+
+  it('allows adding an active resource', async () => {
+    vi.spyOn(auth, 'getSession').mockResolvedValue(mockUser)
+    vi.mocked(prisma.orderItem.findFirst).mockResolvedValue(null)
+    vi.mocked(prisma.resource.findUnique).mockResolvedValue({ id: 'r1', isActive: true } as any)
+    vi.mocked(prisma.order.findFirst).mockResolvedValue(null)
+    vi.mocked(prisma.order.create).mockResolvedValue({ id: 'o1', totalClp: 0, status: 'cart' } as any)
+    vi.mocked(prisma.orderItem.create).mockResolvedValue({} as any)
+    vi.mocked(prisma.orderItem.findMany).mockResolvedValue([{ priceClp: 5000 }] as any)
+    vi.mocked(prisma.order.update).mockResolvedValue({} as any)
+    const req = makeCartRequest({ resourceId: 'r1', priceClp: 5000 }, 'POST')
+    const res = await cartPOST(req as any)
+    expect(res.status).toBe(200)
   })
 
   it('blocks request when CSRF check fails', async () => {

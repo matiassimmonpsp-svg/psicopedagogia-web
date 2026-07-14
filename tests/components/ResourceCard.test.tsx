@@ -10,6 +10,11 @@ vi.mock('next/link', () => ({
     React.createElement('a', { href, ...props }, children),
 }))
 
+vi.mock('next/navigation', () => {
+  const push = vi.fn()
+  return { useRouter: vi.fn(() => ({ push })) }
+})
+
 vi.mock('next/image', () => ({
   default: (props: any) =>
     React.createElement('img', { src: props.src, alt: props.alt }),
@@ -24,6 +29,7 @@ vi.mock('@/context/AuthContext', () => ({
 }))
 
 import { useAuth } from '@/context/AuthContext'
+import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { render, screen, fireEvent } from '@testing-library/react'
 
@@ -76,10 +82,13 @@ describe('ResourceCard', () => {
       expect(screen.getByText('42')).toBeInTheDocument()
     })
 
-    it('renders link to resource detail page', () => {
+    it('navigates to resource detail on card click', () => {
+      const mockPush = vi.fn()
+      ;(useRouter as any).mockReturnValue({ push: mockPush })
       render(<ResourceCard resource={baseResource} />)
-      const link = screen.getByRole('link')
-      expect(link).toHaveAttribute('href', '/recurso/r1')
+      const card = screen.getByRole('link')
+      card.click()
+      expect(mockPush).toHaveBeenCalledWith('/recurso/r1')
     })
   })
 
@@ -228,7 +237,7 @@ describe('ResourceCard', () => {
   describe('handleToggleActive', () => {
     it('calls PATCH /api/resources/[id] on toggle', async () => {
       vi.mocked(useAuth).mockReturnValue({ user: adminUser } as any)
-      const mockFetch = vi.fn().mockResolvedValue({ ok: true })
+      const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ resource: { id: 'r1', isActive: false } }) })
       globalThis.fetch = mockFetch
 
       render(<ResourceCard resource={baseResource} />)
@@ -237,20 +246,58 @@ describe('ResourceCard', () => {
       expect(mockFetch).toHaveBeenCalledWith('/api/resources/r1', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive: true }),
+        credentials: 'include',
+        body: JSON.stringify({ isActive: false }),
+      })
+    })
+
+    it('shows "Recurso pausado" toast when deactivating', async () => {
+      vi.mocked(useAuth).mockReturnValue({ user: adminUser } as any)
+      globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ resource: { id: 'r1', isActive: false } }) })
+
+      render(<ResourceCard resource={baseResource} />)
+      fireEvent.click(screen.getByText('Pausar'))
+
+      await vi.waitFor(() => {
+        expect(toast.success).toHaveBeenCalledWith('Recurso pausado')
+      })
+    })
+
+    it('shows "Recurso reanudado" toast when resuming', async () => {
+      vi.mocked(useAuth).mockReturnValue({ user: adminUser } as any)
+      globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ resource: { id: 'r1', isActive: true } }) })
+      const paused = { ...baseResource, isActive: false }
+
+      render(<ResourceCard resource={paused} />)
+      fireEvent.click(screen.getByText('Reanudar'))
+
+      await vi.waitFor(() => {
+        expect(toast.success).toHaveBeenCalledWith('Recurso reanudado')
       })
     })
 
     it('calls onUpdate after successful toggle', async () => {
       vi.mocked(useAuth).mockReturnValue({ user: adminUser } as any)
       const onUpdate = vi.fn()
-      globalThis.fetch = vi.fn().mockResolvedValue({ ok: true })
+      globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ resource: { id: 'r1', isActive: false } }) })
 
       render(<ResourceCard resource={baseResource} onUpdate={onUpdate} />)
       fireEvent.click(screen.getByText('Pausar'))
 
       await vi.waitFor(() => {
         expect(onUpdate).toHaveBeenCalled()
+      })
+    })
+
+    it('shows error toast when server returns invalid response', async () => {
+      vi.mocked(useAuth).mockReturnValue({ user: adminUser } as any)
+      globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) })
+
+      render(<ResourceCard resource={baseResource} />)
+      fireEvent.click(screen.getByText('Pausar'))
+
+      await vi.waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Respuesta inválida del servidor')
       })
     })
 
@@ -262,7 +309,7 @@ describe('ResourceCard', () => {
       fireEvent.click(screen.getByText('Pausar'))
 
       await vi.waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith('Error al cambiar estado')
+        expect(toast.error).toHaveBeenCalledWith('Network')
       })
     })
   })
@@ -270,7 +317,7 @@ describe('ResourceCard', () => {
   describe('handleDelete', () => {
     it('calls DELETE /api/resources/[id] after confirmation', async () => {
       vi.mocked(useAuth).mockReturnValue({ user: adminUser } as any)
-      globalThis.fetch = vi.fn().mockResolvedValue({ ok: true })
+      globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) })
       vi.spyOn(window, 'confirm').mockReturnValue(true)
 
       render(<ResourceCard resource={baseResource} />)
@@ -278,6 +325,7 @@ describe('ResourceCard', () => {
 
       expect(globalThis.fetch).toHaveBeenCalledWith('/api/resources/r1', {
         method: 'DELETE',
+        credentials: 'include',
       })
     })
 

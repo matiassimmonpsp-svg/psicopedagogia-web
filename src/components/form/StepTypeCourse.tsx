@@ -1,8 +1,28 @@
 'use client'
 
 import { BookOpen, FileText, School } from 'lucide-react'
-import { courses, areas, subareas } from '@/lib/mock-data'
 import ToggleGroup from '@/components/ToggleGroup'
+
+interface Course {
+  id: number
+  name: string
+  slug: string
+  sortOrder: number
+}
+
+interface Area {
+  id: number
+  name: string
+  slug: string
+  sortOrder: number
+}
+
+interface Subarea {
+  id: number
+  name: string
+  slug: string
+  areaId: number
+}
 
 interface StepTypeCourseProps {
   resourceType: 'evaluation' | 'educational'
@@ -13,10 +33,25 @@ interface StepTypeCourseProps {
   setAreaId: (v: string) => void
   subareaId: string
   setSubareaId: (v: string) => void
+  courses: Course[]
+  areas: Area[]
+  subareas: Subarea[]
+  loading: boolean
 }
 
-export default function StepTypeCourse({ resourceType, setResourceType, courseId, setCourseId, areaId, setAreaId, subareaId, setSubareaId }: StepTypeCourseProps) {
+export default function StepTypeCourse({ resourceType, setResourceType, courseId, setCourseId, areaId, setAreaId, subareaId, setSubareaId, courses, areas, subareas, loading }: StepTypeCourseProps) {
   const filteredSubareas = subareas.filter(s => s.areaId === Number(areaId))
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-40">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-sm text-gray-500">Cargando cursos y áreas...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">

@@ -99,4 +99,5 @@ export interface DownloadItem {
   resourceType: string
   date: string
   type: 'purchased' | 'free'
+  isActive?: boolean
 }

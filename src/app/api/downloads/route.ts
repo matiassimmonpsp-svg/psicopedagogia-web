@@ -13,7 +13,7 @@ export async function GET() {
       resource: {
         select: {
           id: true, title: true, isFree: true, resourceType: true,
-          courseId: true, areaId: true,
+          courseId: true, areaId: true, isActive: true,
           course: { select: { name: true, slug: true } },
           area: { select: { slug: true } },
         },
@@ -29,7 +29,7 @@ export async function GET() {
       resource: {
         select: {
           id: true, title: true, isFree: true, resourceType: true,
-          courseId: true, areaId: true,
+          courseId: true, areaId: true, isActive: true,
           course: { select: { name: true, slug: true } },
           area: { select: { slug: true } },
         },
@@ -52,6 +52,7 @@ export async function GET() {
       resourceType: c.resource.resourceType,
       date: c.order.createdAt.toISOString(),
       type: 'purchased' as const,
+      isActive: c.resource.isActive,
     })),
     ...descargas.map(d => ({
       id: `free-${d.id}`,
@@ -65,6 +66,7 @@ export async function GET() {
       resourceType: d.resource.resourceType,
       date: d.downloadedAt.toISOString(),
       type: 'free' as const,
+      isActive: d.resource.isActive,
     })),
   ].filter(item => {
     if (vistos.has(item.resourceId)) return false

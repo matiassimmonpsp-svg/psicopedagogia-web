@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
-import fs from 'fs'
+import { promises as fs } from 'fs'
 import path from 'path'
 
 const DIRS_BUSQUEDA = [
@@ -30,15 +30,17 @@ export async function GET(request: NextRequest, { params }: { params: { name: st
   for (const dir of DIRS_BUSQUEDA) {
     const ruta = path.resolve(dir, name)
     if (!ruta.startsWith(dir + path.sep)) continue
-    if (fs.existsSync(ruta)) {
+    try {
+      const buffer = await fs.readFile(ruta)
       const ext = path.extname(ruta).toLowerCase()
-      const buffer = fs.readFileSync(ruta)
       return new NextResponse(buffer, {
         headers: {
           'Content-Type': MIME_IMG[ext] || 'application/octet-stream',
           'Cache-Control': 'public, max-age=86400, immutable',
         },
       })
+    } catch {
+      continue
     }
   }
 

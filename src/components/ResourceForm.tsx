@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { Save, Check, ArrowLeft, ArrowRight, Eye } from 'lucide-react'
-import { courses, areas, subareas } from '@/lib/mock-data'
+import { useCoursesData } from '@/lib/hooks'
 import StepTypeCourse from '@/components/form/StepTypeCourse'
 import StepContent from '@/components/form/StepContent'
 import StepPrice from '@/components/form/StepPrice'
@@ -27,6 +27,7 @@ const steps = [
 export default function ResourceForm({ mode, resourceId }: ResourceFormProps) {
   const router = useRouter()
   const isEdit = mode === 'edit'
+  const { courses, areas, subareas, loading: coursesLoading } = useCoursesData()
 
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -270,7 +271,7 @@ export default function ResourceForm({ mode, resourceId }: ResourceFormProps) {
       </div>
 
       <form onSubmit={handleSubmit}>
-        {step === 1 && <StepTypeCourse resourceType={resourceType} setResourceType={setResourceType} courseId={courseId} setCourseId={setCourseId} areaId={areaId} setAreaId={setAreaId} subareaId={subareaId} setSubareaId={setSubareaId} />}
+        {step === 1 && <StepTypeCourse resourceType={resourceType} setResourceType={setResourceType} courseId={courseId} setCourseId={setCourseId} areaId={areaId} setAreaId={setAreaId} subareaId={subareaId} setSubareaId={setSubareaId} courses={courses} areas={areas} subareas={subareas} loading={coursesLoading} />}
         {step === 2 && <StepContent title={title} setTitle={setTitle} description={description} setDescription={setDescription} tagsInput={tagsInput} setTagsInput={setTagsInput} courseId={courseId} areaId={areaId} isEdit={isEdit} selectedCourse={selectedCourse} />}
         {step === 3 && <StepPrice isFree={isFree} setIsFree={setIsFree} price={price} setPrice={setPrice} />}
         {step === 4 && <StepFiles isEdit={isEdit} pdfFile={pdfFile} setPdfFile={setPdfFile} existingPdfPath={existingPdfPath} editableFile={editableFile} setEditableFile={setEditableFile} existingEditablePath={existingEditablePath} setExistingEditablePath={setExistingEditablePath} previewFile={previewFile} setPreviewFile={setPreviewFile} previewUrl={previewUrl} setPreviewUrl={setPreviewUrl} existingPreviewPath={existingPreviewPath} uploadingPdf={uploadingPdf} uploadingEditable={uploadingEditable} uploadingPreview={uploadingPreview} />}

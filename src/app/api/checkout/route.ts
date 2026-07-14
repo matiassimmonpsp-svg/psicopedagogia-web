@@ -28,11 +28,18 @@ export async function POST(request: NextRequest) {
     }
 
     const ids = items.map(i => i.id)
-    const existentes = await prisma.resource.findMany({ where: { id: { in: ids } }, select: { id: true, priceClp: true } })
+    const existentes = await prisma.resource.findMany({ where: { id: { in: ids } }, select: { id: true, priceClp: true, isActive: true } })
     const faltantes = ids.filter(id => !existentes.some(r => r.id === id))
     if (faltantes.length) {
       return NextResponse.json({
         error: `Recursos ya no disponibles: ${faltantes.join(', ')}. Limpia tu carrito.`,
+      }, { status: 400 })
+    }
+
+    const pausados = existentes.filter(r => r.isActive === false).map(r => r.id)
+    if (pausados.length) {
+      return NextResponse.json({
+        error: `Recursos no disponibles temporalmente: ${pausados.join(', ')}. Limpia tu carrito.`,
       }, { status: 400 })
     }
 

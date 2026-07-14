@@ -2,6 +2,17 @@ import { test, expect } from '@playwright/test'
 
 const BASE_URL = 'http://localhost:3000'
 
+/** Force React hydration by dispatching a native input event on the first form field */
+async function ensureHydrated(page: any) {
+  await page.evaluate(() => {
+    const input = document.querySelector('input')
+    if (input) {
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+      input.dispatchEvent(new Event('change', { bubbles: true }))
+    }
+  })
+}
+
 // Helper: login via the UI
 async function loginViaUI(page: any, email: string, password: string) {
   await page.goto('/login')
@@ -92,20 +103,21 @@ test.describe('Flujo de login', () => {
 
   test('muestra error con credenciales vacías', async ({ page }) => {
     await page.goto('/login')
-    await page.waitForLoadState('networkidle')
+    await page.waitForSelector('#email')
+    await ensureHydrated(page)
     await page.click('button[type="submit"]')
     await expect(page.locator('text=Todos los campos son obligatorios')).toBeVisible()
   })
 
   test('muestra error con credenciales inválidas', async ({ page }) => {
     await page.goto('/login')
-    await page.waitForLoadState('networkidle')
+    await page.waitForSelector('#email')
+    await ensureHydrated(page)
     await page.fill('#email', 'noexist@test.com')
     await page.fill('#password', 'WrongPass1')
     await page.click('button[type="submit"]')
-    await page.waitForTimeout(2000)
     const errorMsg = page.locator('.text-red-600')
-    await expect(errorMsg).toBeVisible()
+    await expect(errorMsg).toBeVisible({ timeout: 10000 })
   })
 
   test('login exitoso redirige al home', async ({ page }) => {
@@ -152,14 +164,16 @@ test.describe('Flujo de registro', () => {
 
   test('muestra error con campos vacíos', async ({ page }) => {
     await page.goto('/registro')
-    await page.waitForLoadState('networkidle')
+    await page.waitForSelector('#name')
+    await ensureHydrated(page)
     await page.click('button[type="submit"]')
     await expect(page.locator('text=Todos los campos son obligatorios')).toBeVisible()
   })
 
   test('valida longitud mínima de contraseña', async ({ page }) => {
     await page.goto('/registro')
-    await page.waitForLoadState('networkidle')
+    await page.waitForSelector('#name')
+    await ensureHydrated(page)
     await page.fill('#name', 'Test User')
     await page.fill('#email', 'short@test.com')
     await page.fill('#password', 'Ab1')
@@ -169,7 +183,8 @@ test.describe('Flujo de registro', () => {
 
   test('valida mayúscula en contraseña', async ({ page }) => {
     await page.goto('/registro')
-    await page.waitForLoadState('networkidle')
+    await page.waitForSelector('#name')
+    await ensureHydrated(page)
     await page.fill('#name', 'Test User')
     await page.fill('#email', 'noupper@test.com')
     await page.fill('#password', 'alllower12')
@@ -179,7 +194,8 @@ test.describe('Flujo de registro', () => {
 
   test('valida minúscula en contraseña', async ({ page }) => {
     await page.goto('/registro')
-    await page.waitForLoadState('networkidle')
+    await page.waitForSelector('#name')
+    await ensureHydrated(page)
     await page.fill('#name', 'Test User')
     await page.fill('#email', 'nolower@test.com')
     await page.fill('#password', 'ALLUPPER12')
@@ -189,7 +205,8 @@ test.describe('Flujo de registro', () => {
 
   test('valida número en contraseña', async ({ page }) => {
     await page.goto('/registro')
-    await page.waitForLoadState('networkidle')
+    await page.waitForSelector('#name')
+    await ensureHydrated(page)
     await page.fill('#name', 'Test User')
     await page.fill('#email', 'nonum@test.com')
     await page.fill('#password', 'NoNumberHere')
@@ -261,6 +278,8 @@ test.describe('Catálogo', () => {
   test('muestra contador de resultados', async ({ page }) => {
     await page.goto('/catalogo')
     await page.waitForLoadState('networkidle')
+    const loading = page.locator('text=Cargando...')
+    await loading.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {})
     const counter = page.locator('text=/\\d+ recurso/')
     await expect(counter).toBeVisible({ timeout: 10000 })
   })
@@ -306,19 +325,19 @@ test.describe('Búsqueda', () => {
   test('realiza búsqueda por parámetro q', async ({ page }) => {
     await page.goto('/buscar?q=lectura')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(2000)
-    const resultText = page.locator('text=/resultado/')
+    const loading = page.locator('.animate-pulse')
+    await loading.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {})
+    const resultText = page.locator('p:has-text("resultados para")').first()
     const noResults = page.locator('text=No se encontraron resultados')
-    const hasResults = await resultText.isVisible().catch(() => false)
-    const hasNoResults = await noResults.isVisible().catch(() => false)
-    expect(hasResults || hasNoResults).toBe(true)
+    await expect(resultText.or(noResults).first()).toBeVisible({ timeout: 10000 })
   })
 
   test('muestra mensaje cuando no hay resultados', async ({ page }) => {
     await page.goto('/buscar?q=xyznonexistentterm12345')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(2000)
-    await expect(page.locator('text=No se encontraron resultados')).toBeVisible()
+    const loading = page.locator('.animate-pulse')
+    await loading.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {})
+    await expect(page.locator('text=No se encontraron resultados')).toBeVisible({ timeout: 10000 })
   })
 
   test('muestra sugerencias cuando hay resultados', async ({ page }) => {
@@ -335,7 +354,7 @@ test.describe('Búsqueda', () => {
     const searchInput = page.locator('input[type="text"]').first()
     await searchInput.fill('evaluación')
     await searchInput.press('Enter')
-    await page.waitForTimeout(2000)
+    await page.waitForURL('**/buscar**', { timeout: 10000 }).catch(() => {})
     expect(page.url()).toContain('buscar')
   })
 })
@@ -474,15 +493,11 @@ test.describe('Panel admin - Control de acceso', () => {
 
   test('admin muestra estadísticas', async ({ page }) => {
     await loginViaUI(page, 'admin@psicopedagogia.cl', 'demo123')
-    await page.waitForTimeout(2000)
 
     await page.goto('/admin')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(3000)
-
-    const statsVisible = await page.locator('text=Recursos totales').isVisible().catch(() => false)
-    const dashboardVisible = await page.locator('h1:has-text("Dashboard")').isVisible().catch(() => false)
-    expect(statsVisible || dashboardVisible).toBe(true)
+    const dashboardVisible = page.locator('h1:has-text("Dashboard")')
+    await expect(dashboardVisible).toBeVisible({ timeout: 15000 })
   })
 
   test('admin puede ver tabla de recursos', async ({ page }) => {
@@ -576,5 +591,133 @@ test.describe('Perfil', () => {
     await page.waitForTimeout(3000)
     const url = page.url()
     expect(url.includes('login') || url.includes('perfil')).toBe(true)
+  })
+})
+
+// ============================================================
+// Pausar / Reanudar recursos (admin)
+// ============================================================
+test.describe('Pausar / Reanudar recursos', () => {
+  test('admin puede pausar y reanudar un recurso via API', async ({ page }) => {
+    await loginViaUI(page, 'admin@psicopedagogia.cl', 'demo123')
+    await page.waitForURL('/', { timeout: 10000 }).catch(() => {})
+
+    const result = await page.evaluate(async () => {
+      const catRes = await fetch('/api/catalog', { credentials: 'include' })
+      const cat = await catRes.json()
+      const resource = cat.resources.find((r: any) => r.isActive === true)
+      if (!resource) return { error: 'no active resource found' }
+
+      // Pause
+      const pauseRes = await fetch(`/api/resources/${resource.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ isActive: false }),
+      })
+      const pauseData = await pauseRes.json()
+
+      // Verify PATCH response
+      const patchOk = pauseRes.ok && pauseData.resource?.isActive === false
+
+      // Verify via separate GET to the same resource
+      const getRes = await fetch(`/api/resources/${resource.id}`, { credentials: 'include' })
+      const getData = await getRes.json()
+      const getShowsPaused = getData.resource?.isActive === false
+
+      // Resume
+      const resumeRes = await fetch(`/api/resources/${resource.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ isActive: true }),
+      })
+      const resumeData = await resumeRes.json()
+      const resumeOk = resumeRes.ok && resumeData.resource?.isActive === true
+
+      // Verify GET again
+      const getRes2 = await fetch(`/api/resources/${resource.id}`, { credentials: 'include' })
+      const getData2 = await getRes2.json()
+      const getShowsActive = getData2.resource?.isActive === true
+
+      return { resourceId: resource.id, patchOk, getShowsPaused, resumeOk, getShowsActive }
+    })
+
+    expect(result.error).toBeFalsy()
+    expect(result.patchOk).toBe(true)
+    expect(result.getShowsPaused).toBe(true)
+    expect(result.resumeOk).toBe(true)
+    expect(result.getShowsActive).toBe(true)
+  })
+
+  test('usuario normal no ve botones de pausar/reanudar', async ({ page }) => {
+    await loginViaUI(page, 'maria@example.com', 'demo123')
+    await page.waitForURL('/', { timeout: 10000 }).catch(() => {})
+    await page.goto('/catalogo')
+    await page.waitForTimeout(3000)
+    await ensureHydrated(page)
+
+    await expect(page.getByRole('button', { name: 'Pausar' })).not.toBeVisible()
+    await expect(page.getByRole('button', { name: 'Reanudar' })).not.toBeVisible()
+  })
+
+  test('pausar/reanudar no reordena las tarjetas en Home', async ({ page }) => {
+    await loginViaUI(page, 'admin@psicopedagogia.cl', 'demo123')
+    await page.waitForURL('/', { timeout: 10000 }).catch(() => {})
+    await page.waitForTimeout(3000)
+    await ensureHydrated(page)
+
+    // 1. Capturar orden inicial de tarjetas
+    const getCardTitles = () => page.evaluate(() => {
+      return Array.from(document.querySelectorAll('[role="link"] h3')).map(el => el.textContent?.trim())
+    })
+    const initialOrder = await getCardTitles()
+    expect(initialOrder.length).toBeGreaterThan(0)
+
+    // 2. Pausar el primer recurso via API
+    const firstTitle = initialOrder[0]
+    const resourceId = await page.evaluate(async (title) => {
+      const catRes = await fetch('/api/catalog', { credentials: 'include' })
+      const cat = await catRes.json()
+      const resource = cat.resources.find((r: any) => r.title === title)
+      if (!resource) return null
+
+      await fetch(`/api/resources/${resource.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ isActive: false }),
+      })
+      return resource.id
+    }, firstTitle)
+
+    expect(resourceId).toBeTruthy()
+
+    // 3. Recargar la página para que SWR re-fetchee y verificar orden
+    await page.goto('/')
+    await page.waitForTimeout(3000)
+    await ensureHydrated(page)
+
+    // 4. Verificar que el orden NO cambió
+    const orderAfterPause = await getCardTitles()
+    expect(orderAfterPause).toEqual(initialOrder)
+
+    // 5. Reanudar via API y recargar
+    await page.evaluate(async (id) => {
+      await fetch(`/api/resources/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ isActive: true }),
+      })
+    }, resourceId)
+
+    await page.goto('/')
+    await page.waitForTimeout(3000)
+    await ensureHydrated(page)
+
+    // 6. Verificar que el orden sigue igual después de reanudar
+    const orderAfterResume = await getCardTitles()
+    expect(orderAfterResume).toEqual(initialOrder)
   })
 })

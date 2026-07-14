@@ -4,10 +4,13 @@ import { SearchBar } from '@/components/SearchBar'
 import { ResourceCard } from '@/components/ResourceCard'
 import { normalizeText, expandSearchQuery } from '@/lib/utils'
 import { useCatalog } from '@/lib/hooks'
+import { useAuth } from '@/context/AuthContext'
 import type { CatalogResource } from '@/lib/data'
 
 export default function SearchPage({ searchParams }: { searchParams: { q?: string; area?: string; gratis?: string; premium?: string } }) {
-  const { resources: allResources, loading, refresh } = useCatalog()
+  const { resources: allResources, loading, refresh, updateResource } = useCatalog()
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
 
   const query = searchParams.q || ''
   const areaSlug = searchParams.area
@@ -16,8 +19,10 @@ export default function SearchPage({ searchParams }: { searchParams: { q?: strin
 
   const queries = query ? expandSearchQuery(normalizeText(query)) : []
 
+  const visibleResources = allResources.filter((r: CatalogResource) => isAdmin || r.isActive !== false)
+
   let results = query
-    ? allResources.filter((r: CatalogResource) => {
+    ? visibleResources.filter((r: CatalogResource) => {
         const nTitle = normalizeText(r.title)
         const nDesc = normalizeText(r.description)
         const nCourse = normalizeText(r.courseName || '')
@@ -27,14 +32,14 @@ export default function SearchPage({ searchParams }: { searchParams: { q?: strin
           nTags.some((t: string) => t.includes(q))
         )
       })
-    : allResources
+    : visibleResources
 
   let suggestions: CatalogResource[] = []
 
   if (query) {
     const resultTagSet = new Set(results.flatMap((r: CatalogResource) => r.tags || []))
     const resultIds = new Set(results.map((r: CatalogResource) => r.id))
-    suggestions = allResources.filter((r: CatalogResource) =>
+    suggestions = visibleResources.filter((r: CatalogResource) =>
       !resultIds.has(r.id) &&
       (r.tags || []).some((t: string) => resultTagSet.has(t))
     ).slice(0, 8)
@@ -81,14 +86,14 @@ export default function SearchPage({ searchParams }: { searchParams: { q?: strin
             <>
               {query && <h2 className="section-title mb-4">Resultados</h2>}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-                {results.map((r: CatalogResource) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
+                {results.map((r: CatalogResource) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} onUpdateResource={updateResource} />)}
               </div>
 
               {suggestions.length > 0 && (
                 <>
                   <h2 className="section-title mt-12 mb-4">Te puede interesar</h2>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {suggestions.map((r: CatalogResource) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
+                    {suggestions.map((r: CatalogResource) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} onUpdateResource={updateResource} />)}
                   </div>
                 </>
               )}

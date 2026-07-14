@@ -46,6 +46,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const resource = await prisma.resource.findUnique({ where: { id: params.id } })
     if (!resource) return NextResponse.json({ error: 'Recurso no encontrado' }, { status: 404 })
 
+    if (resource.isActive === false) {
+      return NextResponse.json({ error: 'Este recurso no está disponible temporalmente debido a ajustes en su contenido.' }, { status: 403 })
+    }
+
     const promoActiva = !!(resource.promoFreeUntil && new Date(resource.promoFreeUntil) > new Date())
     const esGratisAhora = resource.isFree || promoActiva
     const haPagado = await prisma.orderItem.findFirst({

@@ -51,7 +51,7 @@ export default function ResourceTable({ resources, loading, onDelete, showStatus
             <th className="text-left py-3 px-4 text-gray-500 font-medium">Precio</th>
             <th className="text-left py-3 px-4 text-gray-500 font-medium">Descargas</th>
             {showStatus && <th className="text-left py-3 px-4 text-gray-500 font-medium">Estado</th>}
-            <th className="text-right py-3 px-4 text-gray-500 font-medium">Acción</th>
+            <th className="text-right py-3 px-4 text-gray-500 font-medium">Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -84,14 +84,14 @@ export default function ResourceTable({ resources, loading, onDelete, showStatus
               )}
               <td className="py-3 px-4 text-right">
                 <div className="flex items-center justify-end gap-2">
-                  <Link href={`/recurso/${r.id}`} className="p-1.5 text-gray-400 hover:text-primary-600 rounded hover:bg-primary-50 transition-colors" title="Ver">
-                    <Eye size={14} />
+                  <Link href={`/recurso/${r.id}`} className="btn-ghost inline-flex items-center gap-1.5 text-xs" title="Ver">
+                    <Eye size={14} /> Ver
                   </Link>
-                  <Link href={`/admin/editar-recurso/${r.id}`} className="p-1.5 text-gray-400 hover:text-amber-600 rounded hover:bg-amber-50 transition-colors" title="Editar">
-                    <Edit size={14} />
+                  <Link href={`/admin/editar-recurso/${r.id}`} className="btn-ghost inline-flex items-center gap-1.5 text-xs" title="Editar">
+                    <Edit size={14} /> Editar
                   </Link>
-                  <button onClick={() => onDelete(r.id, r.title)} className="p-1.5 text-gray-400 hover:text-red-600 rounded hover:bg-red-50 transition-colors" title="Eliminar">
-                    <Trash2 size={14} />
+                  <button onClick={() => onDelete(r.id, r.title)} className="btn-ghost inline-flex items-center gap-1.5 text-xs text-red-500 hover:text-red-700 hover:bg-red-50" title="Eliminar">
+                    <Trash2 size={14} /> Eliminar
                   </button>
                 </div>
               </td>

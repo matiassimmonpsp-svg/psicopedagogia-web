@@ -65,26 +65,37 @@ export async function verifyToken(token: string): Promise<AuthUser | null> {
 
 /**
  * Obtiene el usuario autenticado desde la cookie 'session'.
- * Siempre devuelve datos frescos desde la BD (no el payload del JWT),
- * así que sobrevive a resiembras de la BD sin necesidad de reloguearse.
+ * Usa un cache en memoria (30s TTL) para evitar queries repetidas a la BD
+ * en requests consecutivos (middleware + API + layout).
  */
+const sessionCache = new Map<string, { user: AuthUser | null; expiry: number }>()
+const SESSION_TTL_MS = 30_000
+
 export async function getSession(): Promise<AuthUser | null> {
   const cookieStore = await cookies()
   const token = cookieStore.get('session')?.value
   if (!token) return null
 
-  const payload = await verifyToken(token)
-  if (!payload) return null
+  const cached = sessionCache.get(token)
+  if (cached && cached.expiry > Date.now()) return cached.user
 
-  // Busca por email (no por ID) para tolerar resiembras de la BD
+  const payload = await verifyToken(token)
+  if (!payload) {
+    sessionCache.delete(token)
+    return null
+  }
+
   const user = await prisma.user.findUnique({
     where: { email: payload.email },
     select: { id: true, name: true, email: true, role: true },
   })
   if (!user) {
     cookieStore.delete('session')
+    sessionCache.delete(token)
     return null
   }
+
+  sessionCache.set(token, { user, expiry: Date.now() + SESSION_TTL_MS })
   return user
 }
 

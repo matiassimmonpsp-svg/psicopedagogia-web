@@ -8,6 +8,7 @@ import { ResourceCard } from '@/components/ResourceCard'
 import { courses, areas, subareas, getCourseBySlug, type CatalogResource } from '@/lib/data'
 import type { Subarea } from '@/lib/data'
 import { useCatalog } from '@/lib/hooks'
+import { useAuth } from '@/context/AuthContext'
 
 function getSubareasByArea(areaId: number): Subarea[] {
   return subareas.filter((s: Subarea) => s.areaId === areaId)
@@ -15,12 +16,14 @@ function getSubareasByArea(areaId: number): Subarea[] {
 
 export default function CoursePage({ params, searchParams }: { params: { slug: string }; searchParams: { area?: string; subarea?: string } }) {
   const course = getCourseBySlug(params.slug)
-  const { resources: allCatalog, loading, refresh } = useCatalog()
+  const { resources: allCatalog, loading, refresh, updateResource } = useCatalog()
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
 
   const resources = useMemo(() => {
     if (!course) return []
-    return allCatalog.filter((r: CatalogResource) => r.courseSlug === course.slug)
-  }, [allCatalog, course])
+    return allCatalog.filter((r: CatalogResource) => r.courseSlug === course.slug && (isAdmin || r.isActive !== false))
+  }, [allCatalog, course, isAdmin])
 
   if (!course) notFound()
 
@@ -80,7 +83,7 @@ export default function CoursePage({ params, searchParams }: { params: { slug: s
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-          {filteredResources.map((r: CatalogResource) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
+          {filteredResources.map((r: CatalogResource) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} onUpdateResource={updateResource} />)}
         </div>
       )}
     </div>

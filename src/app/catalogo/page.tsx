@@ -6,11 +6,14 @@ import { courses, areas, type CatalogResource } from '@/lib/data'
 import { normalizeText, expandSearchQuery } from '@/lib/utils'
 import { Search, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCatalog } from '@/lib/hooks'
+import { useAuth } from '@/context/AuthContext'
 
 const ITEMS_PER_PAGE = 12
 
 export default function CatalogoPage() {
-  const { resources: allResources, loading, refresh } = useCatalog()
+  const { resources: allResources, loading, refresh, updateResource } = useCatalog()
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
 
   const [courseSlug, setCourseSlug] = useState<string | null>(null)
   const [areaSlug, setAreaSlug] = useState<string | null>(null)
@@ -22,6 +25,7 @@ export default function CatalogoPage() {
   const hasFilters = courseSlug || areaSlug || typeFilter || priceFilter || searchQuery
 
   const results = allResources.filter((r: CatalogResource) => {
+    if (!isAdmin && r.isActive === false) return false
     if (courseSlug && r.courseSlug !== courseSlug) return false
     if (areaSlug && r.areaSlug !== areaSlug) return false
     if (typeFilter && r.resourceType !== typeFilter) return false
@@ -199,7 +203,7 @@ export default function CatalogoPage() {
           ) : (
             <>
               <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-6">
-                {paginatedResults.map((r: CatalogResource) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} />)}
+                {paginatedResults.map((r: CatalogResource) => <ResourceCard key={r.id} resource={r} onUpdate={refresh} onUpdateResource={updateResource} />)}
               </div>
               {totalPages > 1 && (
                 <div className="flex items-center justify-center gap-2 mt-8">

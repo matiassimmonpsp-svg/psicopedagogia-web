@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAdmin } from '@/lib/auth'
+import { getSession, requireAdmin } from '@/lib/auth'
 import { upsertTags } from '@/lib/utils'
 import { csrfCheck } from '@/lib/csrf'
 import { unlink } from 'fs/promises'
@@ -14,7 +14,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       id: true, title: true, description: true, previewPath: true,
       resourceType: true, isFree: true, priceClp: true, promoFreeUntil: true,
       courseId: true, areaId: true, subareaId: true, downloadsCount: true,
-      isActive: true, createdAt: true, updatedAt: true,
+      isActive: true, createdAt: true, updatedAt: true, editablePath: true,
       course: { select: { name: true, slug: true } },
       area: { select: { name: true, slug: true } },
       subarea: { select: { name: true, slug: true } },
@@ -22,7 +22,19 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     },
   })
   if (!resource) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
-  return NextResponse.json({ resource })
+
+  let isOwned = false
+  try {
+    const session = await getSession()
+    if (session) {
+      const haPagado = await prisma.orderItem.findFirst({
+        where: { resourceId: resource.id, order: { userId: session.id, status: 'completed' } },
+      })
+      isOwned = !!haPagado
+    }
+  } catch {}
+
+  return NextResponse.json({ resource: { ...resource, isOwned } })
 }
 
 /** PATCH /api/resources/[id] — Actualiza solo el estado (activo/inactivo) */

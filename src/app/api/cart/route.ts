@@ -44,6 +44,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Ya posees este recurso' }, { status: 400 })
   }
 
+  /* Verificar que el recurso esté activo */
+  const recurso = await prisma.resource.findUnique({ where: { id: resourceId }, select: { isActive: true } })
+  if (!recurso || recurso.isActive === false) {
+    return NextResponse.json({ error: 'Este recurso no está disponible temporalmente' }, { status: 400 })
+  }
+
   /* Busca o crea una orden en estado 'cart' */
   let order = await prisma.order.findFirst({ where: { userId: user.id, status: 'cart' } })
   if (!order) {

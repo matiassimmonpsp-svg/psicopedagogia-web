@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useState, memo } from 'react'
@@ -13,16 +14,24 @@ import { useAuth } from '@/context/AuthContext'
 interface ResourceCardProps {
   resource: Resource
   onUpdate?: () => void
+  onUpdateResource?: (id: string, updates: Partial<Resource>) => void
 }
 
-export const ResourceCard = memo(function ResourceCard({ resource, onUpdate }: ResourceCardProps) {
+export const ResourceCard = memo(function ResourceCard({ resource, onUpdate, onUpdateResource }: ResourceCardProps) {
   const { user } = useAuth()
+  const router = useRouter()
   const isAdmin = user?.role === 'admin'
   const promoActive = hasActivePromo(resource)
   const [imgError, setImgError] = useState(false)
 
   const isPaused = resource.isActive === false
   const hasCustomPreview = resource.previewPath && resource.previewPath !== '/previews/placeholder.svg' && !imgError
+
+  function handleCardClick(e: React.MouseEvent) {
+    const target = e.target as HTMLElement
+    if (target.closest('[data-admin-action]')) return
+    router.push(`/recurso/${resource.id}`)
+  }
 
   async function handleToggleActive(e: React.MouseEvent) {
     e.preventDefault()
@@ -31,13 +40,21 @@ export const ResourceCard = memo(function ResourceCard({ resource, onUpdate }: R
       const res = await fetch(`/api/resources/${resource.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive: !isPaused }),
+        credentials: 'include',
+        body: JSON.stringify({ isActive: !resource.isActive }),
       })
-      if (!res.ok) throw new Error('Error al cambiar estado')
-      onUpdate?.()
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al cambiar estado')
+      if (!data.resource) throw new Error('Respuesta inválida del servidor')
+      toast.success(!resource.isActive ? 'Recurso reanudado' : 'Recurso pausado')
+      if (onUpdateResource) {
+        onUpdateResource(resource.id, { isActive: !resource.isActive } as Partial<Resource>)
+      } else {
+        onUpdate?.()
+      }
     } catch (err) {
       console.error('Error al cambiar estado del recurso:', err)
-      toast.error('Error al cambiar estado')
+      toast.error(err instanceof Error ? err.message : 'Error al cambiar estado')
     }
   }
 
@@ -46,17 +63,24 @@ export const ResourceCard = memo(function ResourceCard({ resource, onUpdate }: R
     e.stopPropagation()
     if (!confirm(`¿Eliminar "${resource.title}"?`)) return
     try {
-      const res = await fetch(`/api/resources/${resource.id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Error al eliminar')
+      const res = await fetch(`/api/resources/${resource.id}`, { method: 'DELETE', credentials: 'include' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al eliminar')
       onUpdate?.()
     } catch (err) {
       console.error('Error al eliminar recurso:', err)
-      toast.error('Error al eliminar')
+      toast.error(err instanceof Error ? err.message : 'Error al eliminar')
     }
   }
 
   return (
-    <Link href={`/recurso/${resource.id}`} className="card overflow-hidden group">
+    <div
+      className="card overflow-hidden group cursor-pointer"
+      onClick={handleCardClick}
+      role="link"
+      tabIndex={0}
+      onKeyDown={e => { if (e.key === 'Enter') router.push(`/recurso/${resource.id}`) }}
+    >
       <div className="aspect-[3/4] relative flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary-100 via-accent-50 to-secondary-100">
         {hasCustomPreview ? (
           <Image src={resource.previewPath} alt={resource.title} fill className="object-cover" onError={() => setImgError(true)} sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" />
@@ -88,14 +112,19 @@ export const ResourceCard = memo(function ResourceCard({ resource, onUpdate }: R
         )}
 
         {isAdmin && (
-          <div className="absolute bottom-2 left-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-[3]">
-            <Link href={`/admin/editar-recurso/${resource.id}`} onClick={e => e.stopPropagation()} className="flex-1 bg-white/90 backdrop-blur-sm text-gray-700 text-xs font-medium py-1.5 rounded flex items-center justify-center gap-1 hover:bg-white">
+          <div data-admin-action className="absolute bottom-2 left-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-[3]">
+            <button
+              type="button"
+              data-admin-action
+              onClick={e => { e.preventDefault(); e.stopPropagation(); router.push(`/admin/editar-recurso/${resource.id}`) }}
+              className="flex-1 bg-white/90 backdrop-blur-sm text-gray-700 text-xs font-medium py-1.5 rounded flex items-center justify-center gap-1 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+            >
               <Edit size={12} /> Editar
-            </Link>
-            <button type="button" onClick={handleToggleActive} className="flex-1 bg-white/90 backdrop-blur-sm text-gray-700 text-xs font-medium py-1.5 rounded flex items-center justify-center gap-1 hover:bg-white">
+            </button>
+            <button type="button" data-admin-action onClick={handleToggleActive} className="flex-1 bg-white/90 backdrop-blur-sm text-gray-700 text-xs font-medium py-1.5 rounded flex items-center justify-center gap-1 hover:bg-amber-50 hover:text-amber-700 transition-colors">
               {isPaused ? <Play size={12} /> : <Pause size={12} />} {isPaused ? 'Reanudar' : 'Pausar'}
             </button>
-            <button type="button" onClick={handleDelete} className="flex-1 bg-white/90 backdrop-blur-sm text-red-600 text-xs font-medium py-1.5 rounded flex items-center justify-center gap-1 hover:bg-white">
+            <button type="button" data-admin-action onClick={handleDelete} className="flex-1 bg-white/90 backdrop-blur-sm text-red-600 text-xs font-medium py-1.5 rounded flex items-center justify-center gap-1 hover:bg-red-50 hover:text-red-700 transition-colors">
               <Trash2 size={12} /> Eliminar
             </button>
           </div>
@@ -128,6 +157,6 @@ export const ResourceCard = memo(function ResourceCard({ resource, onUpdate }: R
           </span>
         </div>
       </div>
-    </Link>
+    </div>
   )
 })

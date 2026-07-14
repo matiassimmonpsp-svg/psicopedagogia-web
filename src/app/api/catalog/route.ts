@@ -12,33 +12,31 @@ export async function GET(request: Request) {
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
   const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '12', 10)))
 
-  /* Obtener IDs de recursos que el usuario ya posee (compra completada) */
-  let ownedResourceIds: Set<string> = new Set()
-  try {
-    const session = await getSession()
-    if (session) {
-      const ownedItems = await prisma.orderItem.findMany({
-        where: { order: { userId: session.id, status: 'completed' } },
-        select: { resourceId: true },
-      })
-      ownedResourceIds = new Set(ownedItems.map(i => i.resourceId))
-    }
-  } catch {
-    /* Sin sesión: catálogo público, todos los isOwned serán false */
-  }
+  const session = await getSession().catch(() => null)
+  const isAdmin = session?.role === 'admin'
 
   const dbResources = await prisma.resource.findMany({
-    select: {
-      id: true, title: true, description: true, filePath: true, previewPath: true,
-      resourceType: true, isFree: true, priceClp: true, promoFreeUntil: true,
-      courseId: true, areaId: true, subareaId: true, downloadsCount: true, isActive: true,
-      course: { select: { name: true, slug: true } },
-      area: { select: { name: true, slug: true } },
-      subarea: { select: { name: true, slug: true } },
-      tags: { select: { tag: { select: { name: true } } } },
-    },
-    orderBy: { createdAt: 'desc' },
-  })
+      where: isAdmin ? {} : { isActive: true },
+      select: {
+        id: true, title: true, description: true, filePath: true, previewPath: true,
+        resourceType: true, isFree: true, priceClp: true, promoFreeUntil: true,
+        courseId: true, areaId: true, subareaId: true, downloadsCount: true, isActive: true,
+        course: { select: { name: true, slug: true } },
+        area: { select: { name: true, slug: true } },
+        subarea: { select: { name: true, slug: true } },
+        tags: { select: { tag: { select: { name: true } } } },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+  let ownedResourceIds: Set<string> = new Set()
+  if (session) {
+    const ownedItems = await prisma.orderItem.findMany({
+      where: { order: { userId: session.id, status: 'completed' } },
+      select: { resourceId: true },
+    })
+    ownedResourceIds = new Set(ownedItems.map(i => i.resourceId))
+  }
 
   const combined = [
     ...dbResources.map(r => ({
@@ -66,7 +64,6 @@ export async function GET(request: Request) {
       isOwned: ownedResourceIds.has(r.id),
       source: 'db' as const,
     })),
-    // Recursos mock que no existen en BD
     ...mockResources.filter(m => !dbResources.some(d => d.id === m.id)).map(m => ({
       ...m,
       courseSlug: mockCourses.find(c => c.id === m.courseId)?.slug || null,
