@@ -1,24 +1,30 @@
 /**
- * Rate limiting en memoria (por IP).
- * Almacena timestamps por clave en un Map.
- * No persiste entre reinicios del servidor.
- *
- * Nota: En producción multi-instancia se recomienda Redis o similar.
+ * Rate limiting con Redis (Upstash) para producción multi-instancia.
+ * Fallback a memoria si no hay Redis configurado.
  */
 
-const almacen = new Map<string, number[]>()
+import { Redis } from '@upstash/redis'
 
-/** Limpia timestamps viejos cada 5 minutos */
-setInterval(() => {
-  const ahora = Date.now()
-  const entradas = Array.from(almacen)
-  for (let i = 0; i < entradas.length; i++) {
-    const [key, timestamps] = entradas[i]
-    const vigentes = timestamps.filter(t => ahora - t < 60_000)
-    if (vigentes.length) almacen.set(key, vigentes)
-    else almacen.delete(key)
-  }
-}, 300_000)
+const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+  ? new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    })
+  : null
+
+// Fallback en memoria para desarrollo
+const memoria = new Map<string, number[]>()
+
+if (!redis) {
+  setInterval(() => {
+    const ahora = Date.now()
+    for (const [key, timestamps] of Array.from(memoria.entries())) {
+      const vigentes = timestamps.filter((t: number) => ahora - t < 60_000)
+      if (vigentes.length) memoria.set(key, vigentes)
+      else memoria.delete(key)
+    }
+  }, 300_000)
+}
 
 /**
  * Extrae la IP real del request, ignorando X-Forwarded-For spoofed
@@ -39,16 +45,41 @@ export function getClientIp(headers: Headers): string {
  * @param max  Máximo de requests permitidos
  * @param windowMs  Ventana de tiempo en ms
  */
-export function checkRateLimit(key: string, max: number, windowMs: number = 60_000): { allowed: boolean } {
+export async function checkRateLimit(key: string, max: number, windowMs: number = 60_000): Promise<{ allowed: boolean }> {
   const ahora = Date.now()
-  const registros = almacen.get(key) || []
-  const vigentes = registros.filter(t => ahora - t < windowMs)
+  const windowSec = Math.ceil(windowMs / 1000)
 
-  if (vigentes.length >= max) {
-    return { allowed: false }
+  if (redis) {
+    // Redis: usa sorted set con score = timestamp
+    const now = Date.now()
+    const minScore = now - windowMs
+
+    const pipeline = redis.pipeline()
+    pipeline.zremrangebyscore(key, 0, minScore)
+    pipeline.zcard(key)
+    const results = await pipeline.exec()
+
+    const currentCount = results[1] as number
+
+    if (currentCount >= max) {
+      return { allowed: false }
+    }
+
+    // Agregar request actual
+    await redis.zadd(key, { score: now, member: `${now}-${Math.random()}` })
+    await redis.expire(key, windowSec)
+    return { allowed: true }
+  } else {
+    // Fallback memoria
+    const registros = memoria.get(key) || []
+    const vigentes = registros.filter(t => ahora - t < windowMs)
+
+    if (vigentes.length >= max) {
+      return { allowed: false }
+    }
+
+    vigentes.push(ahora)
+    memoria.set(key, vigentes)
+    return { allowed: true }
   }
-
-  vigentes.push(ahora)
-  almacen.set(key, vigentes)
-  return { allowed: true }
 }

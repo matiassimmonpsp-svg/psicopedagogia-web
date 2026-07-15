@@ -43,13 +43,13 @@ describe('POST /api/resources', () => {
 
   it('returns 401 when not admin', async () => {
     vi.spyOn(auth, 'requireAdmin').mockResolvedValue(null)
-    const res = await resourcesPOST(makeReq({ title: 'Test' }), {} as any)
+    const res = await resourcesPOST(makeReq({ title: 'Test' }) as any)
     expect(res.status).toBe(401)
   })
 
   it('returns 400 when title is missing', async () => {
     vi.spyOn(auth, 'requireAdmin').mockResolvedValue({ id: '1', name: 'Admin', email: 'a@b.cl', role: 'admin' })
-    const res = await resourcesPOST(makeReq({ courseId: 1, areaId: 1, filePath: '/test.pdf' }), {} as any)
+    const res = await resourcesPOST(makeReq({ courseId: 1, areaId: 1, filePath: '/test.pdf' }) as any)
     const data = await res.json()
     expect(res.status).toBe(400)
     expect(data.error).toContain('Faltan campos')
@@ -57,20 +57,20 @@ describe('POST /api/resources', () => {
 
   it('returns 400 when courseId is missing', async () => {
     vi.spyOn(auth, 'requireAdmin').mockResolvedValue({ id: '1', name: 'Admin', email: 'a@b.cl', role: 'admin' })
-    const res = await resourcesPOST(makeReq({ title: 'Test', areaId: 1, filePath: '/test.pdf' }), {} as any)
+    const res = await resourcesPOST(makeReq({ title: 'Test', areaId: 1, filePath: '/test.pdf' }) as any)
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when filePath is missing', async () => {
     vi.spyOn(auth, 'requireAdmin').mockResolvedValue({ id: '1', name: 'Admin', email: 'a@b.cl', role: 'admin' })
-    const res = await resourcesPOST(makeReq({ title: 'Test', courseId: 1, areaId: 1 }), {} as any)
+    const res = await resourcesPOST(makeReq({ title: 'Test', courseId: 1, areaId: 1 }) as any)
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when course does not exist', async () => {
     vi.spyOn(auth, 'requireAdmin').mockResolvedValue({ id: '1', name: 'Admin', email: 'a@b.cl', role: 'admin' })
     vi.mocked(prisma.course.findUnique).mockResolvedValue(null)
-    const res = await resourcesPOST(makeReq({ title: 'Test', courseId: 999, areaId: 1, filePath: '/test.pdf' }), {} as any)
+    const res = await resourcesPOST(makeReq({ title: 'Test', courseId: 999, areaId: 1, filePath: '/test.pdf' }) as any)
     const data = await res.json()
     expect(res.status).toBe(400)
     expect(data.error).toContain('Curso o área inválidos')
@@ -83,7 +83,7 @@ describe('POST /api/resources', () => {
     vi.mocked(prisma.resource.create).mockResolvedValue({ id: 'r1', title: 'Nuevo recurso' } as any)
     const res = await resourcesPOST(makeReq({
       title: 'Nuevo recurso', courseId: 1, areaId: 1, filePath: '/test.pdf', isFree: true,
-    }), {} as any)
+    }) as any)
     const data = await res.json()
     expect(res.status).toBe(201)
     expect(data.resource.id).toBe('r1')
@@ -95,7 +95,7 @@ describe('POST /api/resources', () => {
     vi.mocked(prisma.course.findUnique).mockResolvedValue({ id: 1 } as any)
     vi.mocked(prisma.area.findUnique).mockResolvedValue({ id: 1 } as any)
     vi.mocked(prisma.resource.create).mockResolvedValue({ id: 'r1' } as any)
-    await resourcesPOST(makeReq({ title: 'Test', courseId: 1, areaId: 1, filePath: '/a.pdf' }), {} as any)
+    await resourcesPOST(makeReq({ title: 'Test', courseId: 1, areaId: 1, filePath: '/a.pdf' }) as any)
     const call = vi.mocked(prisma.resource.create).mock.calls[0][0]
     expect(call.data.isActive).toBe(true)
   })
@@ -105,7 +105,7 @@ describe('POST /api/resources', () => {
     vi.mocked(prisma.course.findUnique).mockResolvedValue({ id: 1 } as any)
     vi.mocked(prisma.area.findUnique).mockResolvedValue({ id: 1 } as any)
     vi.mocked(prisma.resource.create).mockRejectedValue(new Error('DB error'))
-    const res = await resourcesPOST(makeReq({ title: 'Test', courseId: 1, areaId: 1, filePath: '/a.pdf' }), {} as any)
+    const res = await resourcesPOST(makeReq({ title: 'Test', courseId: 1, areaId: 1, filePath: '/a.pdf' }) as any)
     expect(res.status).toBe(500)
   })
 })

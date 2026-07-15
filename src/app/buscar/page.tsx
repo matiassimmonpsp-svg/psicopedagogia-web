@@ -46,15 +46,15 @@ export default function SearchPage({ searchParams }: { searchParams: { q?: strin
   }
 
   if (areaSlug) {
-    results = results.filter((r: CatalogResource) => r.areaSlug === areaSlug)
+    results = results.filter((r: Resource) => r.areaSlug === areaSlug)
     suggestions = suggestions.filter((r: Resource) => r.areaSlug === areaSlug)
   }
   if (gratisFilter) {
-    results = results.filter((r: CatalogResource) => r.isFree)
+    results = results.filter((r: Resource) => r.isFree)
     suggestions = suggestions.filter((r: Resource) => r.isFree)
   }
   if (premiumFilter) {
-    results = results.filter((r: CatalogResource) => !r.isFree)
+    results = results.filter((r: Resource) => !r.isFree)
     suggestions = suggestions.filter((r: Resource) => !r.isFree)
   }
 

@@ -35,7 +35,8 @@ const MIME: Record<string, string> = {
 /** GET /api/download/[id] — Descarga un recurso (PDF o editable) */
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   const ip = getClientIp(request.headers)
-  if (!checkRateLimit(`download:${ip}`, 20, 60_000).allowed) {
+  const rateLimit = await checkRateLimit(`download:${ip}`, 20, 60_000)
+  if (!rateLimit.allowed) {
     return NextResponse.json({ error: 'Demasiadas descargas. Espera 1 minuto.' }, { status: 429 })
   }
 

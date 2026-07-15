@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -22,7 +23,7 @@ const makeReq = (file: File | null, type = 'pdf') => {
   const formData = new FormData()
   if (file) formData.append('file', file)
   formData.append('type', type)
-  return new Request('http://localhost/api/upload', {
+  return new NextRequest('http://localhost/api/upload', {
     method: 'POST',
     body: formData,
   })

@@ -4,12 +4,15 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Download, BookOpen, Lock, ShoppingCart, Clock, Loader2, Shield, Check, Sparkles, Edit3, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Download, BookOpen, Lock, ShoppingCart, Loader2, Shield, Check, Sparkles, Edit3, AlertTriangle } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useCart } from '@/context/CartContext'
 import { formatClp, hasActivePromo, downloadFile } from '@/lib/utils'
 import { logger } from '@/lib/logger'
 import type { Resource } from '@/lib/data'
+import { ResourcePreview } from '@/components/ResourceDetailPreview'
+import { ResourcePausedBanner } from '@/components/ResourcePausedBanner'
+import { ResourcePriceSection } from '@/components/ResourcePriceSection'
 
 /** Página de detalle de un recurso individual */
 export default function ResourceDetailPage() {
@@ -32,17 +35,33 @@ export default function ResourceDetailPage() {
         const api = data.resource
         if (api) {
           setResource({
-            ...api,
+            id: api.id,
+            title: api.title,
+            description: api.description,
+            previewPath: api.previewPath,
+            filePath: api.filePath,
+            editablePath: api.editablePath ?? null,
+            priceClp: api.priceClp,
+            resourceType: api.resourceType,
+            courseId: api.courseId,
+            areaId: api.areaId ?? 0,
+            subareaId: api.subareaId ?? null,
+            downloadsCount: api.downloadsCount ?? 0,
+            promoFreeUntil: api.promoFreeUntil ?? null,
+            isFree: api.isFree,
+            isOwned: api.isOwned ?? false,
+            isActive: api.isActive ?? true,
             courseName: api.course?.name || '',
             courseSlug: api.course?.slug || '',
             areaName: api.area?.name || '',
             areaSlug: api.area?.slug || '',
-            tags: Array.isArray(api.tags) ? api.tags.map((t: any) => t.tag?.name || t.name || '') : [],
+            tags: Array.isArray(api.tags) ? api.tags.map((t: { tag?: { name: string }; name?: string }) => t.tag?.name || t.name || '') : [],
+            source: 'db',
           })
         }
-} catch (err) {
-          logger.error('Error al cargar recurso', { error: err })
-        } finally {
+      } catch (err) {
+        logger.error('Error al cargar recurso', { error: err })
+      } finally {
         setLoading(false)
       }
     }
@@ -54,7 +73,6 @@ export default function ResourceDetailPage() {
       setAddedToCart(true)
     }
   }, [resource, cartItems])
-
 
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 size={32} className="animate-spin text-primary-500" /></div>
@@ -102,171 +120,20 @@ export default function ResourceDetailPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="md:col-span-1">
-          <div className="aspect-[3/4] bg-gradient-to-br from-primary-100 via-accent-50 to-secondary-100 rounded-2xl flex items-center justify-center overflow-hidden shadow-lg border border-gray-100">
-            {previewPath !== '/previews/placeholder.svg' && !imgError ? (
-              <img src={previewPath} alt={title} className="w-full h-full object-cover" onError={() => setImgError(true)} />
-            ) : (
-              <div className="text-center p-6">
-                <BookOpen size={56} className="mx-auto text-primary-400 mb-3" />
-                <p className="text-sm text-gray-500 font-medium">{resourceType === 'educational' ? 'Material Educativo' : 'Evaluación'}</p>
-              </div>
-            )}
-          </div>
+          <ResourcePreview
+            resource={resource}
+            imgError={imgError}
+            setImgError={setImgError}
+          />
         </div>
 
-        <div className="md:col-span-2 space-y-6">
-          <div>
-            {resource.courseName && (
-              <p className="text-sm text-primary-600 font-medium mb-1">{resource.courseName}</p>
-            )}
-            <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-            <p className="text-gray-600 mt-2 leading-relaxed break-words">{description}</p>
-          </div>
-
-          {resource.tags && resource.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {resource.tags.map((tagName, i) => (
-                tagName ? <span key={i} className="badge bg-gray-100 text-gray-600 text-xs">{tagName}</span> : null
-              })}
-            </div>
-          )}
-
-
-
-          <div className="border-t border-gray-200 pt-6">
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-2xl p-6 border border-gray-200">
-              {resource.isActive === false ? (
-                <div className="relative overflow-hidden rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100/50 p-6">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-amber-200/20 rounded-full -translate-y-1/2 translate-x-1/2" />
-                  <div className="relative flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shrink-0 shadow-lg shadow-amber-200">
-                      <AlertTriangle size={22} className="text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-base font-bold text-amber-900">Recurso en revisión</p>
-                      <p className="text-sm text-amber-700 mt-1.5 leading-relaxed">
-                        {resource.isOwned
-                          ? 'Ya tienes acceso a este recurso. Volverá a estar disponible pronto.'
-                          : 'Este recurso se está actualizando. Vuelve a revisar más adelante.'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {promoActive ? (
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <p className="text-sm text-gray-500">Precio</p>
-                        <p className="text-xl font-bold text-amber-600 flex items-center gap-2">
-                          <Clock size={20} /> Gratis por tiempo limitado
-                        </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          Promoción válida hasta {promoFreeUntil ? new Date(promoFreeUntil).toLocaleDateString('es-CL') : ''}
-                        </p>
-                      </div>
-                    </div>
-                  ) : isFree ? (
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <p className="text-sm text-gray-500">Precio</p>
-                        <p className="text-xl font-bold text-emerald-600 flex items-center gap-2">
-                          <Sparkles size={20} /> Gratuito
-                        </p>
-                      </div>
-                      <span className="inline-flex items-center gap-1.5 text-emerald-700 font-bold bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 text-sm"><Sparkles size={14} /> Gratuito</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <p className="text-sm text-gray-500">Precio</p>
-                        <p className="text-2xl font-bold text-indigo-600">{formatClp(price)}</p>
-                      </div>
-                      <span className="inline-flex items-center gap-1.5 text-indigo-700 font-bold bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-200 text-sm">
-                        ${Number(price).toLocaleString('es-CL')} CLP
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    {isFree || promoActive || resource.isOwned ? (
-                      <>
-                        <button
-                          onClick={() => handleDownload()}
-                          disabled={downloading}
-                          className="inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-bold text-white bg-primary-600 rounded-2xl hover:bg-primary-700 active:scale-[0.97] transition-all shadow-lg shadow-primary-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none flex-1"
-                        >
-                          {downloading ? (
-                            <Loader2 size={18} className="animate-spin" />
-                          ) : (
-                            <Download size={18} />
-                          )}
-                          {downloading ? 'Descargando...' : 'Descargar PDF'}
-                        </button>
-                        {editablePath && (
-                          <button
-                            onClick={() => handleDownload('editable')}
-                            disabled={downloading}
-                            className="inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-bold text-amber-700 bg-amber-50 border-2 border-amber-200 rounded-2xl hover:bg-amber-100 active:scale-[0.97] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex-1"
-                          >
-                            <Edit3 size={18} />
-                            Descargar {editableExt || 'Editable'}
-                          </button>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        {addedToCart ? (
-                          <Link
-                            href="/carrito"
-                            className="inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-bold text-white bg-primary-600 rounded-2xl hover:bg-primary-700 active:scale-[0.97] transition-all shadow-lg shadow-primary-200 flex-1"
-                          >
-                            <ShoppingCart size={18} /> Ir al carrito
-                          </Link>
-                        ) : (
-                          <button
-                            onClick={handleAddToCart}
-                            className="inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-bold text-white bg-primary-600 rounded-2xl hover:bg-primary-700 active:scale-[0.97] transition-all shadow-lg shadow-primary-200 flex-1"
-                          >
-                            <ShoppingCart size={18} /> Agregar al carrito
-                          </button>
-                        )}
-                        {addedToCart && (
-                          <div className="flex items-center justify-center gap-2 text-sm font-bold text-emerald-700 bg-emerald-50 px-4 py-3 rounded-2xl border border-emerald-200 flex-1">
-                            <Check size={16} /> Agregado al carrito
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-
-                  {resource.isOwned && (
-                    <div className="mt-4 flex items-center gap-2 text-xs text-emerald-600 bg-emerald-50 rounded-xl px-4 py-2.5 border border-emerald-200">
-                      <Check size={12} />
-                      <span>Ya comprado. Acceso vitalicio a este recurso.</span>
-                    </div>
-                  )}
-
-                  {!isFree && !promoActive && !resource.isOwned && (
-                    <div className="mt-4 flex items-center gap-2 text-xs text-gray-400 bg-white/60 rounded-xl px-4 py-2.5">
-                      <Lock size={12} />
-                      <span>Recurso premium. Pago único, acceso vitalicio.</span>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-
-          {!user && !resource.isOwned && (
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-2xl p-5 border border-blue-200 text-sm text-blue-700">
-              <p>Inicia sesión para {isFree || promoActive ? 'descargar' : 'comprar'} este recurso.</p>
-              <Link href="/login" className="font-semibold underline mt-1.5 inline-block">Iniciar sesión</Link>
-            </div>
-          )}
-
-
-        </div>
+        <ResourcePriceSection
+          resource={resource}
+          downloading={downloading}
+          onDownload={handleDownload}
+          onAddToCart={handleAddToCart}
+          addedToCart={addedToCart}
+        />
       </div>
     </div>
   )

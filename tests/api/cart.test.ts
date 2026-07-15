@@ -179,7 +179,7 @@ describe('POST /api/cart', () => {
     vi.spyOn(auth, 'getSession').mockResolvedValue(mockUser)
     vi.mocked(prisma.order.findFirst).mockResolvedValue({ id: 'o1', totalClp: 5000, status: 'cart' } as any)
     /* Mock findFirst: null para ownership check, resultado para duplicate check */
-    vi.mocked(prisma.orderItem.findFirst).mockImplementation(async (args: any) => {
+    ;(prisma.orderItem.findFirst as any).mockImplementation(async (args: any) => {
       if (args?.where?.order) return null  /* ownership check */
       return { id: 1, resourceId: 'r1' } as any  /* duplicate check */
     })

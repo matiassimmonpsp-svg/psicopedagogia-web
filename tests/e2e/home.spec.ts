@@ -327,7 +327,7 @@ test.describe('Búsqueda', () => {
     await page.waitForLoadState('networkidle')
     const loading = page.locator('.animate-pulse')
     await loading.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {})
-    const resultText = page.locator('p:has-text("resultados para")').first()
+    const resultText = page.locator('p:has-text("resultado")').first()
     const noResults = page.locator('text=No se encontraron resultados')
     await expect(resultText.or(noResults).first()).toBeVisible({ timeout: 10000 })
   })

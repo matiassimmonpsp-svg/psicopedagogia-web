@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs'
 import { SignJWT, jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
 import { prisma } from './prisma'
+import { Redis } from '@upstash/redis'
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET!)
 if (!JWT_SECRET) throw new Error('JWT_SECRET no definido en .env')
@@ -63,25 +64,51 @@ export async function verifyToken(token: string): Promise<AuthUser | null> {
   }
 }
 
-/**
- * Obtiene el usuario autenticado desde la cookie 'session'.
- * Usa un cache en memoria (30s TTL) para evitar queries repetidas a la BD
- * en requests consecutivos (middleware + API + layout).
- */
-const sessionCache = new Map<string, { user: AuthUser | null; expiry: number }>()
+/** Cache de sesiones en memoria (fallback si no hay Redis) */
+const sessionCache = new Map<string, { user: AuthUser; expiry: number }>()
 const SESSION_TTL_MS = 30_000
 
+/** Cliente Redis opcional para cache de sesiones (Upstash / Vercel KV) */
+function getRedis(): Redis | null {
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    return new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    })
+  }
+  return null
+}
+
+const redis = getRedis()
+const SESSION_TTL_SEC = 30
+
+/**
+ * Obtiene el usuario autenticado desde la cookie 'session'.
+ * Usa Redis (30s TTL) si está configurado; si no, Map en memoria.
+ * Evita queries repetidas a la BD en requests consecutivos.
+ */
 export async function getSession(): Promise<AuthUser | null> {
   const cookieStore = await cookies()
   const token = cookieStore.get('session')?.value
   if (!token) return null
 
-  const cached = sessionCache.get(token)
-  if (cached && cached.expiry > Date.now()) return cached.user
+  const cacheKey = `session:${token}`
 
+  // 1. Intenta Redis
+  if (redis) {
+    const cached = await redis.get<string>(cacheKey)
+    if (cached) return JSON.parse(cached)
+  }
+
+  // 2. Fallback: memoria local
+  const mem = sessionCache.get(token)
+  if (mem && mem.expiry > Date.now()) return mem.user
+
+  // 3. Verifica token y busca en BD
   const payload = await verifyToken(token)
   if (!payload) {
-    sessionCache.delete(token)
+    if (redis) await redis.del(cacheKey)
+    else sessionCache.delete(token)
     return null
   }
 
@@ -91,11 +118,17 @@ export async function getSession(): Promise<AuthUser | null> {
   })
   if (!user) {
     cookieStore.delete('session')
-    sessionCache.delete(token)
+    if (redis) await redis.del(cacheKey)
+    else sessionCache.delete(token)
     return null
   }
 
-  sessionCache.set(token, { user, expiry: Date.now() + SESSION_TTL_MS })
+  // Guarda en cache
+  if (redis) {
+    await redis.setex(cacheKey, SESSION_TTL_SEC, JSON.stringify(user))
+  } else {
+    sessionCache.set(token, { user, expiry: Date.now() + SESSION_TTL_MS })
+  }
   return user
 }
 

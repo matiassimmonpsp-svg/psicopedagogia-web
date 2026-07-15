@@ -147,7 +147,7 @@ model Order {
   id            String       @id @default(cuid())
   userId        String       @map("user_id")
   totalClp      Int          @map("total_clp")
-  status        String       @default("pending")     // "cart" | "completed"
+  status        String       @default("cart")     // "cart" | "completed"
   paymentMethod String?      @map("payment_method")
   paymentId     String?      @map("payment_id")
   createdAt     DateTime     @default(now()) @map("created_at")

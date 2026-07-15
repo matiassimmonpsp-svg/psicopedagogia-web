@@ -18,7 +18,8 @@ const MIME_IMG: Record<string, string> = {
 /** GET /api/preview/[name] — Sirve imágenes de preview con rate limit y protección path traversal */
 export async function GET(request: NextRequest, { params }: { params: { name: string } }) {
   const ip = getClientIp(request.headers)
-  if (!checkRateLimit(`preview:${ip}`, 60, 60_000).allowed) {
+  const rateLimit = await checkRateLimit(`preview:${ip}`, 60, 60_000)
+  if (!rateLimit.allowed) {
     return NextResponse.json({ error: 'Demasiadas solicitudes' }, { status: 429 })
   }
 

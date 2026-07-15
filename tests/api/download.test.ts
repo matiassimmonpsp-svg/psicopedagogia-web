@@ -2,15 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
-    resource: { findUnique: vi.fn() },
+    resource: {
+      findUnique: vi.fn(),
+      update: vi.fn(),
+    },
     orderItem: { findFirst: vi.fn() },
     download: {
       findFirst: vi.fn(),
       create: vi.fn(),
-    },
-    resource: {
-      findUnique: vi.fn(),
-      update: vi.fn(),
     },
   },
 }))
