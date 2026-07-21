@@ -2,6 +2,7 @@
 
 import { DollarSign, Sparkles, Gem } from 'lucide-react'
 import ToggleGroup from '@/components/ToggleGroup'
+import { formatClp } from '@/lib/utils'
 
 interface StepPriceProps {
   isFree: boolean
@@ -19,12 +20,13 @@ export default function StepPrice({ isFree, setIsFree, price, setPrice }: StepPr
             <DollarSign size={20} className="text-emerald-700" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Precio</h2>
+            <h2 id="step-price-heading" className="text-lg font-bold text-gray-900">Precio</h2>
             <p className="text-sm text-gray-500">Define si el recurso será gratuito o de pago.</p>
           </div>
         </div>
 
         <ToggleGroup
+          ariaLabelledby="step-price-heading"
           options={[
             { value: 'true', label: 'Gratuito', icon: <Sparkles size={16} />, activeBg: 'bg-emerald-50', activeText: 'text-emerald-700', activeBorder: 'border-emerald-500', iconBg: 'bg-emerald-200', iconColor: 'text-emerald-700' },
             { value: 'false', label: 'Premium', icon: <DollarSign size={16} />, activeBg: 'bg-indigo-50', activeText: 'text-indigo-700', activeBorder: 'border-indigo-500', iconBg: 'bg-indigo-200', iconColor: 'text-indigo-700' },
@@ -38,11 +40,12 @@ export default function StepPrice({ isFree, setIsFree, price, setPrice }: StepPr
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 whitespace-nowrap">
                 <Gem size={15} className="text-indigo-500" />
-                Precio en CLP
+                <label htmlFor="price-input">Precio en CLP</label>
               </div>
               <div className="flex items-center gap-2 flex-1 relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-300 pointer-events-none">$</span>
                 <input
+                  id="price-input"
                   type="number"
                   value={price}
                   onChange={e => setPrice(e.target.value)}
@@ -51,14 +54,14 @@ export default function StepPrice({ isFree, setIsFree, price, setPrice }: StepPr
                   required
                 />
                 <span className={`text-xs font-medium px-2 py-1.5 rounded-lg transition-colors ${
-                  price && Number(price) > 0 ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-400'
+                  price && Number(price) > 0 ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'
                 }`}>CLP</span>
                 <span className="text-[10px] font-semibold text-indigo-500 bg-indigo-50 px-2 py-1.5 rounded-lg border border-indigo-200 whitespace-nowrap">Pago único</span>
               </div>
             </div>
             <p className="text-xs text-gray-400 text-center">
               {price && Number(price) > 0
-                ? `Los usuarios pagarán $${Number(price).toLocaleString('es-CL')} CLP.`
+                ? `Los usuarios pagarán ${formatClp(Number(price))} CLP.`
                 : 'Ingresa el valor del recurso.'}
             </p>
           </div>

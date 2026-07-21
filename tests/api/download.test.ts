@@ -17,6 +17,7 @@ vi.mock('@/lib/prisma', () => ({
 vi.mock('@/lib/rate-limit', () => ({
   checkRateLimit: vi.fn().mockReturnValue({ allowed: true }),
   getClientIp: vi.fn().mockReturnValue('127.0.0.1'),
+  hashIp: vi.fn((ip: string) => `hashed-${ip}`),
 }))
 
 vi.mock('fs', () => ({

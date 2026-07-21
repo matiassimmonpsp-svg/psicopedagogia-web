@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 import { socialPosts as mockPosts } from '@/lib/data'
+import { logger } from '@/lib/logger'
 
 interface InstagramPost { id: string; caption?: string; media_url?: string; permalink?: string; timestamp?: string }
 
-const INSTAGRAM_USER = process.env.NEXT_PUBLIC_INSTAGRAM_USER || 'sii.mmon'
+const INSTAGRAM_USER = process.env.NEXT_PUBLIC_INSTAGRAM_USER || 'siimon.psp'
 const ACCESS_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN || ''
 const USER_ID = process.env.INSTAGRAM_USER_ID || ''
 
@@ -27,8 +28,8 @@ export async function GET() {
       }))
 
       return NextResponse.json({ posts, username: INSTAGRAM_USER, source: 'api' })
-    } catch {
-      // fallback to mock data
+    } catch (err: unknown) {
+      logger.error('Error al obtener posts de Instagram', { error: err instanceof Error ? err.message : err })
     }
   }
 

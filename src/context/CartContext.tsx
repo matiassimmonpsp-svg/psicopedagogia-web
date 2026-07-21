@@ -1,8 +1,9 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react'
 import { useAuth } from './AuthContext'
 import type { CartItem } from '@/lib/data'
+import { csrfFetch } from '@/lib/csrf-client'
 import { logger } from '@/lib/logger'
 
 interface CartContextType {
@@ -16,6 +17,8 @@ interface CartContextType {
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
+
+let cartMutex = Promise.resolve()
 
 /**
  * Proveedor del carrito de compras.
@@ -34,7 +37,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
           const stored = localStorage.getItem('cart')
           setItems(stored ? JSON.parse(stored) : [])
         }
-      } catch (err) { console.warn('Error al parsear carrito del localStorage:', err)
+      } catch (err) {
+        logger.warn('Error al parsear carrito del localStorage', { error: String(err) })
         setItems([])
       }
       setLoading(false)
@@ -47,10 +51,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const data = await res.json()
         setItems(data.items || [])
       }
-} catch (err) {
-        logger.error('Error al cargar carrito', { error: err })
-      }
-    finally { setLoading(false) }
+    } catch (err) {
+      logger.error('Error al cargar carrito', { error: err instanceof Error ? err.message : String(err) })
+    } finally {
+      setLoading(false)
+    }
   }, [user])
 
   useEffect(() => { fetchCart() }, [fetchCart])
@@ -64,16 +69,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addItem = useCallback(async (item: CartItem): Promise<string | null> => {
     if (!user) {
-      const stored = typeof window !== 'undefined' ? localStorage.getItem('cart') : null
-      const cart: CartItem[] = stored ? JSON.parse(stored) : []
-      if (!cart.some((i: CartItem) => i.id === item.id)) {
-        cart.push(item)
-        guardarLocal(cart)
-      }
-      return null
+      return new Promise<string | null>((resolve) => {
+        cartMutex = cartMutex.then(async () => {
+          const stored = typeof window !== 'undefined' ? localStorage.getItem('cart') : null
+          const cart: CartItem[] = stored ? JSON.parse(stored) : []
+          if (!cart.some((i: CartItem) => i.id === item.id)) {
+            cart.push(item)
+            guardarLocal(cart)
+          }
+          resolve(null)
+        })
+      })
     }
     try {
-      const res = await fetch('/api/cart', {
+      const res = await csrfFetch('/api/cart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resourceId: item.id, priceClp: item.priceClp }),
@@ -91,16 +100,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const removeItem = useCallback(async (id: string) => {
     if (!user) {
-      guardarLocal(items.filter(i => i.id !== id))
+      setItems(prev => {
+        const newItems = prev.filter(i => i.id !== id)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('cart', JSON.stringify(newItems))
+        }
+        return newItems
+      })
       return
     }
     try {
-      await fetch(`/api/cart/${id}`, { method: 'DELETE' })
+      await csrfFetch(`/api/cart/${id}`, { method: 'DELETE' })
       await fetchCart()
-} catch (err) {
-        logger.error('Error al eliminar del carrito', { error: err })
-      }
-  }, [user, items, fetchCart, guardarLocal])
+    } catch (err) {
+      logger.error('Error al eliminar del carrito', { error: err instanceof Error ? err.message : String(err) })
+    }
+  }, [user, fetchCart])
 
   const clearCart = useCallback(async () => {
     if (!user) {
@@ -111,18 +126,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return
     }
     try {
-      await fetch('/api/cart/clear', { method: 'DELETE' })
+      await csrfFetch('/api/cart/clear', { method: 'DELETE' })
       await fetchCart()
-} catch (err) {
-        logger.error('Error al vaciar carrito', { error: err })
-      }
+    } catch (err) {
+      logger.error('Error al vaciar carrito', { error: err instanceof Error ? err.message : String(err) })
+    }
   }, [user, fetchCart])
 
   const count = items.length
-  const subtotal = items.reduce((s, i) => s + i.priceClp, 0)
+  const subtotal = items.reduce((s, i) => s + (i.priceClp ?? 0), 0)
+
+  const value = useMemo(() => ({
+    items, loading, addItem, removeItem, clearCart, count, subtotal,
+  }), [items, loading, addItem, removeItem, clearCart, count, subtotal])
 
   return (
-    <CartContext.Provider value={{ items, loading, addItem, removeItem, clearCart, count, subtotal }}>
+    <CartContext.Provider value={value}>
       {children}
     </CartContext.Provider>
   )

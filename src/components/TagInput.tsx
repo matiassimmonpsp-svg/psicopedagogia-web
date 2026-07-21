@@ -5,36 +5,36 @@ import { X, Plus, Lightbulb, Tag } from 'lucide-react'
 import { logger } from '@/lib/logger'
 
 const TAG_SUGGESTIONS: Record<string, string[]> = {
-  '1_1': ['conciencia fonológica', 'discriminación auditiva', 'vocabulario', 'conciencia semántica'],
-  '1_2': ['numeración', 'razonamiento matemático', 'categorización', 'secuencia temporal'],
-  '1_3': ['atención', 'percepción visual', 'memoria de trabajo', 'inhibición', 'planificación', 'organización'],
-  '2_1': ['conciencia fonológica', 'discriminación auditiva', 'vocabulario', 'conciencia semántica'],
-  '2_2': ['numeración', 'razonamiento matemático', 'categorización'],
-  '2_3': ['atención', 'percepción visual', 'memoria de trabajo'],
-  '3_1': ['fluidez lectora', 'comprensión lectora', 'conciencia fonológica', 'grafomotricidad', 'vocabulario'],
-  '3_2': ['numeración', 'razonamiento matemático', 'resolución de problemas'],
-  '3_3': ['funciones ejecutivas', 'memoria de trabajo', 'atención', 'inhibición', 'planificación', 'organización'],
-  '4_1': ['comprensión lectora', 'fluidez lectora', 'grafomotricidad', 'vocabulario'],
-  '4_2': ['razonamiento matemático', 'resolución de problemas', 'numeración'],
-  '4_3': ['funciones ejecutivas', 'memoria de trabajo', 'atención', 'inhibición', 'planificación'],
-  '5_1': ['comprensión lectora', 'fluidez lectora', 'vocabulario'],
-  '5_2': ['razonamiento matemático', 'resolución de problemas'],
-  '5_3': ['funciones ejecutivas', 'memoria de trabajo', 'flexibilidad cognitiva', 'atención'],
-  '6_1': ['comprensión lectora', 'fluidez lectora', 'conciencia semántica', 'vocabulario'],
-  '6_2': ['razonamiento matemático', 'resolución de problemas'],
-  '6_3': ['funciones ejecutivas', 'memoria de trabajo', 'flexibilidad cognitiva', 'atención'],
-  '7_1': ['comprensión lectora', 'vocabulario'],
-  '7_2': ['razonamiento matemático', 'resolución de problemas'],
-  '7_3': ['funciones ejecutivas', 'memoria de trabajo', 'flexibilidad cognitiva', 'planificación'],
-  '8_1': ['comprensión lectora', 'conciencia semántica', 'vocabulario'],
-  '8_2': ['razonamiento matemático', 'resolución de problemas'],
-  '8_3': ['funciones ejecutivas', 'memoria de trabajo', 'planificación', 'organización', 'flexibilidad cognitiva'],
-  '9_1': ['comprensión lectora', 'vocabulario'],
-  '9_2': ['razonamiento matemático', 'resolución de problemas'],
-  '9_3': ['funciones ejecutivas', 'planificación', 'organización', 'flexibilidad cognitiva'],
-  '10_1': ['comprensión lectora', 'vocabulario'],
-  '10_2': ['razonamiento matemático', 'resolución de problemas'],
-  '10_3': ['funciones ejecutivas', 'planificación', 'organización', 'memoria de trabajo', 'flexibilidad cognitiva'],
+  '11_4': ['conciencia fonológica', 'discriminación auditiva', 'vocabulario', 'conciencia semántica', 'pre-escritura', 'grafomotricidad'],
+  '11_5': ['numeración', 'razonamiento matemático', 'categorización', 'secuencia temporal', 'nociones numéricas', 'conteo'],
+  '11_6': ['atención', 'percepción visual', 'memoria de trabajo', 'inhibición', 'planificación', 'organización'],
+  '12_4': ['conciencia fonológica', 'discriminación auditiva', 'vocabulario', 'conciencia semántica', 'fluidez lectora', 'grafomotricidad'],
+  '12_5': ['numeración', 'razonamiento matemático', 'categorización', 'conteo', 'seriación', 'patrones'],
+  '12_6': ['atención', 'percepción visual', 'memoria de trabajo', 'funciones ejecutivas', 'planificación', 'organización'],
+  '13_4': ['fluidez lectora', 'comprensión lectora', 'conciencia fonológica', 'grafomotricidad', 'vocabulario', 'pre-escritura', 'escritura'],
+  '13_5': ['numeración', 'razonamiento matemático', 'resolución de problemas', 'nociones numéricas', 'conteo', 'categorización'],
+  '13_6': ['funciones ejecutivas', 'memoria de trabajo', 'atención', 'inhibición', 'planificación', 'organización'],
+  '14_4': ['comprensión lectora', 'fluidez lectora', 'grafomotricidad', 'vocabulario', 'escritura', 'producción escrita'],
+  '14_5': ['razonamiento matemático', 'resolución de problemas', 'numeración', 'operaciones', 'estimación'],
+  '14_6': ['funciones ejecutivas', 'memoria de trabajo', 'atención', 'inhibición', 'planificación', 'flexibilidad cognitiva'],
+  '15_4': ['comprensión lectora', 'fluidez lectora', 'vocabulario', 'producción escrita', 'textos narrativos'],
+  '15_5': ['razonamiento matemático', 'resolución de problemas', 'operaciones', 'cálculo mental', 'estimación'],
+  '15_6': ['funciones ejecutivas', 'memoria de trabajo', 'flexibilidad cognitiva', 'atención', 'planificación'],
+  '16_4': ['comprensión lectora', 'fluidez lectora', 'vocabulario', 'producción escrita', 'textos narrativos', 'textos'],
+  '16_5': ['razonamiento matemático', 'resolución de problemas', 'operaciones', 'cálculo mental', 'geometría', 'espacio'],
+  '16_6': ['funciones ejecutivas', 'memoria de trabajo', 'flexibilidad cognitiva', 'planificación', 'metacognición'],
+  '17_4': ['comprensión lectora', 'vocabulario', 'producción escrita', 'textos avanzados', 'velocidad'],
+  '17_5': ['razonamiento matemático', 'resolución de problemas', 'operaciones', 'sistema decimal', 'geometría'],
+  '17_6': ['funciones ejecutivas', 'memoria de trabajo', 'flexibilidad cognitiva', 'atención', 'planificación', 'metacognición'],
+  '18_4': ['comprensión lectora', 'conciencia semántica', 'vocabulario', 'producción escrita', 'textos avanzados'],
+  '18_5': ['razonamiento matemático', 'resolución de problemas', 'operaciones', 'sistema decimal', 'geometría', 'coordenadas'],
+  '18_6': ['funciones ejecutivas', 'memoria de trabajo', 'flexibilidad cognitiva', 'planificación', 'organización', 'metacognición'],
+  '19_4': ['comprensión lectora', 'vocabulario', 'producción escrita', 'textos avanzados', 'velocidad', 'lectura oral'],
+  '19_5': ['razonamiento matemático', 'resolución de problemas', 'operaciones', 'sistema decimal', 'geometría', 'coordenadas'],
+  '19_6': ['funciones ejecutivas', 'memoria de trabajo', 'flexibilidad cognitiva', 'planificación', 'organización', 'metacognición'],
+  '20_4': ['comprensión lectora', 'vocabulario', 'producción escrita', 'textos avanzados', 'velocidad', 'lectura oral'],
+  '20_5': ['razonamiento matemático', 'resolución de problemas', 'operaciones', 'sistema decimal', 'geometría', 'números grandes'],
+  '20_6': ['funciones ejecutivas', 'memoria de trabajo', 'planificación', 'organización', 'flexibilidad cognitiva', 'metacognición'],
 }
 
 interface TagInputProps {
@@ -130,7 +130,7 @@ export function TagInput({ value, onChange, courseId, areaId }: TagInputProps) {
           {tags.map(tag => (
             <span key={tag} className="inline-flex items-center gap-1.5 bg-purple-100 text-purple-700 text-xs font-semibold px-3 py-1.5 rounded-full border border-purple-200 shadow-sm">
               {tag}
-              <button type="button" onClick={() => removeTag(tag)} className="hover:text-red-600 transition-colors">
+              <button type="button" onClick={() => removeTag(tag)} aria-label={`Eliminar etiqueta ${tag}`} className="hover:text-red-600 transition-colors">
                 <X size={12} />
               </button>
             </span>
@@ -145,12 +145,14 @@ export function TagInput({ value, onChange, courseId, areaId }: TagInputProps) {
         <input
           ref={inputRef}
           type="text"
+          aria-label="Escribir etiqueta"
           value={input}
           onChange={e => { setInput(e.target.value); setShowDropdown(true); setHighlightIdx(-1) }}
           onFocus={() => setShowDropdown(true)}
           onKeyDown={handleKeyDown}
           className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:bg-white transition-all"
           placeholder={tags.length === 0 ? 'Escribe una etiqueta y presiona Enter...' : 'Agregar más etiquetas...'}
+          style={{ '--tw-placeholder-color': '#9CA3AF' } as React.CSSProperties}
         />
 
         {showDropdown && filtered.length > 0 && (

@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import {
-  courses, areas, subareas, allTags, allResources, socialPosts,
-  getCourseBySlug, searchResources,
+  courses, areas, subareas, socialPosts,
+  getCourseBySlug,
 } from '@/lib/data'
+import { allTags, allResources } from '@/lib/mock-data'
 
 describe('mock data structure', () => {
   it('courses tiene al menos 10 niveles', () => {
@@ -69,24 +70,5 @@ describe('getCourseBySlug', () => {
 
   it('retorna undefined para slug inexistente', () => {
     expect(getCourseBySlug('no-existe')).toBeUndefined()
-  })
-})
-
-describe('searchResources', () => {
-  it('busca por título', () => {
-    const { results } = searchResources('conciencia fonológica')
-    expect(results.length).toBeGreaterThan(0)
-    expect(results.some(r => r.title.toLowerCase().includes('conciencia'))).toBe(true)
-  })
-
-  it('retorna vacío para query vacía', () => {
-    const { results, suggestions } = searchResources('')
-    expect(results).toEqual([])
-    expect(suggestions).toEqual([])
-  })
-
-  it('incluye sugerencias', () => {
-    const { suggestions } = searchResources('fluidez lectora')
-    expect(suggestions).toBeInstanceOf(Array)
   })
 })

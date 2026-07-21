@@ -25,11 +25,15 @@ export function hasActivePromo(resource: { promoFreeUntil?: string | Date | null
   return new Date(resource.promoFreeUntil) > new Date()
 }
 
-/** Devuelve la fecha de término de la promo, o null si ya expiró */
-export function getPromoEndDate(promoFreeUntil: string | Date | null): Date | null {
-  if (!promoFreeUntil) return null
-  const date = new Date(promoFreeUntil)
-  return date > new Date() ? date : null
+/** Genera un slug URL-friendly a partir de un nombre */
+export function generateSlug(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
 }
 
 /** Descarga un archivo desde una URL y lo guarda con el nombre indicado */

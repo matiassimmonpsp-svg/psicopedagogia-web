@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin } from '@/lib/auth'
-import { csrfCheck } from '@/lib/csrf'
-import fs from 'fs'
+import { requireAdminWithCsrf, enforceRateLimit } from '@/lib/api-helpers'
+import { logger } from '@/lib/logger'
+import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 
 const MAX_SIZE = 50 * 1024 * 1024 // 50 MB
@@ -29,13 +29,15 @@ const SUBDIR: Record<string, string> = {
   editable: 'private/uploads/pdfs',
   preview: 'private/uploads/previews',
 }
+const UPLOAD_TYPES = ['pdf', 'editable', 'preview'] as const
 
 /** POST /api/upload — Sube un archivo (PDF, editable o preview) con validación */
 export async function POST(request: NextRequest) {
-  const csrf = csrfCheck(request)
-  if (csrf) return csrf
-  const user = await requireAdmin()
-  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const authError = await requireAdminWithCsrf(request)
+  if (authError) return authError
+
+  const rateLimited = await enforceRateLimit(request, 'upload', 20)
+  if (rateLimited) return rateLimited
 
   try {
     const form = await request.formData()
@@ -43,6 +45,10 @@ export async function POST(request: NextRequest) {
     const type = form.get('type') as string || 'pdf'
 
     if (!file) return NextResponse.json({ error: 'Archivo requerido' }, { status: 400 })
+
+    if (!UPLOAD_TYPES.includes(type as typeof UPLOAD_TYPES[number])) {
+      return NextResponse.json({ error: 'Tipo de upload inválido' }, { status: 400 })
+    }
 
     if (!MIMES_PERMITIDOS.includes(file.type)) {
       return NextResponse.json({ error: 'Tipo de archivo no permitido' }, { status: 400 })
@@ -60,16 +66,17 @@ export async function POST(request: NextRequest) {
     const validMagic = MAGIC_BYTES[magicKey]?.some(m => buffer.subarray(0, m.length).equals(m))
     if (!validMagic) return NextResponse.json({ error: 'Archivo corrupto o inválido' }, { status: 400 })
 
-    const subdir = SUBDIR[type] || 'private/uploads/pdfs'
+    const subdir = SUBDIR[type]
     const dir = path.join(process.cwd(), subdir)
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+    await mkdir(dir, { recursive: true })
 
     const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`
-    fs.writeFileSync(path.join(dir, filename), buffer)
+    await writeFile(path.join(dir, filename), buffer)
     const url = `/${subdir.replace('private/', '')}/${filename}`
 
     return NextResponse.json({ url })
   } catch (err: unknown) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'Error al subir' }, { status: 500 })
+    logger.error('Error al subir archivo', { error: err instanceof Error ? err.message : err })
+    return NextResponse.json({ error: 'Error al subir' }, { status: 500 })
   }
 }

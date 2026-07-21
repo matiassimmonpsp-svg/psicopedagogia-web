@@ -18,8 +18,9 @@ async function main() {
   await prisma.socialPost.deleteMany()
   await prisma.discountCode.deleteMany()
 
-  const hash = await bcrypt.hash('demo123', 10)
-  const testHash = await bcrypt.hash('test123', 10)
+  // Passwords que cumplen las reglas de validación (8+ chars, uppercase, lowercase, digit)
+  const hash = await bcrypt.hash('Demo1234', 10)
+  const testHash = await bcrypt.hash('Test1234', 10)
 
   // ──── 2. Usuarios de prueba ────
   const admin = await prisma.user.create({

@@ -83,12 +83,10 @@ describe('ResourceCard', () => {
     })
 
     it('navigates to resource detail on card click', () => {
-      const mockPush = vi.fn()
-      ;(useRouter as any).mockReturnValue({ push: mockPush })
       render(<ResourceCard resource={baseResource} />)
       const card = screen.getByRole('link')
+      expect(card).toHaveAttribute('href', '/recurso/r1')
       card.click()
-      expect(mockPush).toHaveBeenCalledWith('/recurso/r1')
     })
   })
 
@@ -237,17 +235,19 @@ describe('ResourceCard', () => {
   describe('handleToggleActive', () => {
     it('calls PATCH /api/resources/[id] on toggle', async () => {
       vi.mocked(useAuth).mockReturnValue({ user: adminUser } as any)
-      const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ resource: { id: 'r1', isActive: false } }) })
+      const mockFetch = vi.fn()
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ csrfToken: 'test-token' }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ resource: { id: 'r1', isActive: false } }) })
       globalThis.fetch = mockFetch
 
       render(<ResourceCard resource={baseResource} />)
       fireEvent.click(screen.getByText('Pausar'))
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/resources/r1', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ isActive: false }),
+      await vi.waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith('/api/resources/r1', expect.objectContaining({
+          method: 'PATCH',
+          body: JSON.stringify({ isActive: false }),
+        }))
       })
     })
 
@@ -317,27 +317,45 @@ describe('ResourceCard', () => {
   describe('handleDelete', () => {
     it('calls DELETE /api/resources/[id] after confirmation', async () => {
       vi.mocked(useAuth).mockReturnValue({ user: adminUser } as any)
-      globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) })
-      vi.spyOn(window, 'confirm').mockReturnValue(true)
+      const mockFetch = vi.fn()
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ csrfToken: 'test-token' }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({}) })
+      globalThis.fetch = mockFetch
 
       render(<ResourceCard resource={baseResource} />)
       fireEvent.click(screen.getByText('Eliminar'))
 
-      expect(globalThis.fetch).toHaveBeenCalledWith('/api/resources/r1', {
-        method: 'DELETE',
-        credentials: 'include',
+      await vi.waitFor(() => {
+        expect(screen.getByText('Eliminar recurso')).toBeInTheDocument()
+      })
+
+      const confirmBtn = screen.getAllByText('Eliminar').find(el => el.tagName === 'BUTTON' && el.closest('[role="dialog"]'))
+      fireEvent.click(confirmBtn!)
+
+      await vi.waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith('/api/resources/r1', expect.objectContaining({
+          method: 'DELETE',
+        }))
       })
     })
 
-    it('does not delete when confirmation is cancelled', () => {
+    it('does not delete when confirmation is cancelled', async () => {
       vi.mocked(useAuth).mockReturnValue({ user: adminUser } as any)
       globalThis.fetch = vi.fn()
-      vi.spyOn(window, 'confirm').mockReturnValue(false)
 
       render(<ResourceCard resource={baseResource} />)
       fireEvent.click(screen.getByText('Eliminar'))
 
-      expect(globalThis.fetch).not.toHaveBeenCalled()
+      await vi.waitFor(() => {
+        expect(screen.getByText('Eliminar recurso')).toBeInTheDocument()
+      })
+
+      const cancelBtn = screen.getByText('Cancelar')
+      fireEvent.click(cancelBtn)
+
+      await vi.waitFor(() => {
+        expect(globalThis.fetch).not.toHaveBeenCalled()
+      })
     })
   })
 })

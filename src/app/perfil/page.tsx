@@ -15,7 +15,7 @@ export default function ProfilePage() {
     fetch('/api/downloads')
       .then(r => r.json())
       .then(d => setDownloadCount(d.downloads?.length || 0))
-      .catch(() => {})
+      .catch(() => console.warn('Error al cargar descargas'))
   }, [user])
 
   useEffect(() => {
@@ -23,7 +23,7 @@ export default function ProfilePage() {
     fetch('/api/orders/count')
       .then(r => r.json())
       .then(d => setOrderCount(d.count || 0))
-      .catch(() => {})
+      .catch(() => console.warn('Error al cargar órdenes'))
   }, [user])
 
   if (loading) {

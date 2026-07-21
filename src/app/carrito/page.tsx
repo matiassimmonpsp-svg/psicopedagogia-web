@@ -6,6 +6,7 @@ import { Trash2, ShoppingBag, ArrowLeft, Percent, X } from 'lucide-react'
 import { formatClp } from '@/lib/utils'
 import { useCart } from '@/context/CartContext'
 import { saveDiscountToSession, loadDiscountFromSession, clearDiscountFromSession } from '@/lib/discount-storage'
+import { csrfFetch } from '@/lib/csrf-client'
 
 /** Página del carrito de compras */
 export default function CartPage() {
@@ -35,8 +36,8 @@ export default function CartPage() {
     setVerifying(true)
     setDiscountError('')
     try {
-      const total = items.reduce((sum, i) => sum + i.priceClp, 0)
-      const res = await fetch('/api/discount-codes', {
+      const total = items.reduce((sum, i) => sum + (i.priceClp ?? 0), 0)
+      const res = await csrfFetch('/api/discount-codes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'verify', code: discountCode, cartTotal: total }),
@@ -49,8 +50,8 @@ export default function CartPage() {
         clearDiscountFromSession()
       } else {
         setDiscount(data.discount)
-        setDiscountPercent(data.discountPercent)
-        saveDiscountToSession(data.code, data.discount, data.discountPercent)
+        setDiscountPercent(data.discountPercent || 0)
+        saveDiscountToSession(discountCode, data.discount, data.discountPercent || 0)
         setDiscountError('')
       }
     } catch {
@@ -72,7 +73,7 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+      <div data-testid="cart-empty" className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
         <ShoppingBag size={64} className="mx-auto text-gray-300 mb-4" />
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Tu carrito está vacío</h1>
         <p className="text-gray-500 mb-6">Explora nuestros recursos y agrega los que necesites.</p>
@@ -91,14 +92,14 @@ export default function CartPage() {
 
       <div className="space-y-4 mb-8">
         {items.map(item => (
-          <div key={item.id} className="card p-4 flex items-center justify-between">
+          <div key={item.id} data-testid="cart-item" className="card p-4 flex items-center justify-between">
             <div>
-              <h3 className="font-medium text-gray-900">{item.title}</h3>
+              <h2 className="font-medium text-gray-900">{item.title}</h2>
               <p className="text-sm text-gray-500">{item.courseName}</p>
             </div>
             <div className="flex items-center gap-4">
               <span className="font-bold text-primary-600">{formatClp(item.priceClp)}</span>
-              <button onClick={() => handleRemove(item.id)} className="text-gray-400 hover:text-red-600 transition-colors"><Trash2 size={18} /></button>
+              <button data-testid="remove-cart-item" onClick={() => handleRemove(item.id)} aria-label={`Eliminar ${item.title} del carrito`} className="text-gray-400 hover:text-red-600 transition-colors"><Trash2 size={18} /></button>
             </div>
           </div>
         ))}
@@ -107,7 +108,10 @@ export default function CartPage() {
       <div className="card p-6 mb-6">
         <h2 className="font-semibold text-gray-900 mb-3">¿Tienes un código de descuento?</h2>
         <div className="flex gap-2">
+          <label htmlFor="discount-code-input" className="sr-only">Código de descuento</label>
           <input
+            id="discount-code-input"
+            data-testid="discount-input"
             type="text"
             value={discountCode}
             onChange={e => setDiscountCode(e.target.value.toUpperCase())}
@@ -116,11 +120,11 @@ export default function CartPage() {
             disabled={discount !== null}
           />
           {discount !== null ? (
-            <button onClick={removeDiscount} className="btn-secondary inline-flex items-center gap-1 text-sm">
+            <button data-testid="remove-discount" onClick={removeDiscount} className="btn-secondary inline-flex items-center gap-1 text-sm">
               <X size={14} /> Quitar
             </button>
           ) : (
-            <button onClick={verifyCode} disabled={verifying || !discountCode.trim()} className="btn-primary text-sm disabled:opacity-50">
+            <button data-testid="apply-discount" onClick={verifyCode} disabled={verifying || !discountCode.trim()} className="btn-primary text-sm disabled:opacity-50">
               {verifying ? '...' : 'Aplicar'}
             </button>
           )}
@@ -145,7 +149,7 @@ export default function CartPage() {
           <span className="font-semibold text-gray-900">Total</span>
           <span className="text-2xl font-bold text-primary-600">{formatClp(total)}</span>
         </div>
-        <Link href="/checkout" className="btn-primary w-full text-center block">Ir a pagar</Link>
+        <Link data-testid="go-to-checkout" href="/checkout" className="btn-primary w-full text-center block">Ir a pagar</Link>
         <p className="text-xs text-gray-400 text-center mt-2">Pago seguro vía Webpay o Flow</p>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { Search, PlusCircle, X } from 'lucide-react'
 import Link from 'next/link'
 import { courses } from '@/lib/data'
 import ResourceTable from '@/components/ResourceTable'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useCatalog, useResourceActions } from '@/lib/hooks'
 import type { Resource } from '@/lib/data'
 
@@ -14,6 +15,21 @@ export default function AdminResources() {
   const [search, setSearch] = useState('')
   const [courseFilter, setCourseFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null)
+
+  function requestDelete(id: string, title: string) {
+    setPendingDelete({ id, title })
+    setConfirmOpen(true)
+  }
+
+  function confirmDelete() {
+    if (pendingDelete) {
+      handleDelete(pendingDelete.id, pendingDelete.title)
+      setPendingDelete(null)
+      setConfirmOpen(false)
+    }
+  }
 
   const filtered = useMemo(() => {
     let result = resources
@@ -51,7 +67,9 @@ export default function AdminResources() {
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <label htmlFor="admin-resource-search" className="sr-only">Buscar recurso</label>
             <input
+              id="admin-resource-search"
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -59,11 +77,13 @@ export default function AdminResources() {
               className="input-field pl-9 w-full"
             />
           </div>
-          <select value={courseFilter} onChange={e => setCourseFilter(e.target.value)} className="input-field min-w-[140px]">
+          <label htmlFor="admin-course-filter" className="sr-only">Filtrar por curso</label>
+          <select id="admin-course-filter" value={courseFilter} onChange={e => setCourseFilter(e.target.value)} className="input-field min-w-[140px]">
             <option value="">Todos los cursos</option>
             {courses.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}
           </select>
-          <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="input-field min-w-[140px]">
+          <label htmlFor="admin-type-filter" className="sr-only">Filtrar por tipo</label>
+          <select id="admin-type-filter" value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="input-field min-w-[140px]">
             <option value="">Todos los tipos</option>
             <option value="evaluation">Evaluación</option>
             <option value="educational">Material educativo</option>
@@ -80,11 +100,11 @@ export default function AdminResources() {
         {loading ? (
           <div className="p-8 text-center text-gray-400">Cargando recursos...</div>
         ) : filtered.length === 0 ? (
-          <div className="p-8 text-center text-gray-400">
+          <div className="p-8 text-center text-gray-500">
             {hasFilters ? 'No hay recursos que coincidan con los filtros.' : 'No hay recursos aún.'}
           </div>
         ) : (
-          <ResourceTable resources={filtered} onDelete={handleDelete} showStatus onToggleActive={handleToggleActive} />
+          <ResourceTable resources={filtered} onDelete={requestDelete} showStatus onToggleActive={handleToggleActive} />
         )}
       </div>
 
@@ -94,6 +114,15 @@ export default function AdminResources() {
           : `${resources.length} recursos en total`
         }
       </p>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Eliminar recurso"
+        message={pendingDelete ? `¿Eliminar "${pendingDelete.title}"? Esta acción no se puede deshacer.` : ''}
+        danger
+        onConfirm={confirmDelete}
+        onCancel={() => { setConfirmOpen(false); setPendingDelete(null) }}
+      />
     </div>
   )
 }

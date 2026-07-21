@@ -8,6 +8,7 @@ import { CreditCard, Shield, ArrowLeft, ShoppingBag, Percent, Loader2 } from 'lu
 import { formatClp } from '@/lib/utils'
 import { useCart } from '@/context/CartContext'
 import { loadDiscountFromSession, clearDiscountFromSession } from '@/lib/discount-storage'
+import { csrfFetch } from '@/lib/csrf-client'
 
 /** Página de checkout - selección de método de pago y confirmación */
 export default function CheckoutPage() {
@@ -34,7 +35,7 @@ export default function CheckoutPage() {
     if (paying) return
     setPaying(true)
     try {
-      const res = await fetch('/api/checkout', {
+      const res = await csrfFetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -78,7 +79,7 @@ export default function CheckoutPage() {
 
       <h1 className="text-2xl font-bold text-gray-900 mb-8">Finalizar compra</h1>
 
-      <div className="card p-6 mb-6">
+      <div data-testid="order-summary" className="card p-6 mb-6">
         <h2 className="font-semibold text-gray-900 mb-4">Resumen del pedido</h2>
         <div className="space-y-3 mb-4">
           {items.map(item => (
@@ -91,32 +92,32 @@ export default function CheckoutPage() {
         <div className="border-t pt-3 space-y-2 text-sm">
           <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span className="font-medium">{formatClp(subtotal)}</span></div>
           {discount !== null && (
-            <div className="flex justify-between"><span className="flex items-center gap-1 text-green-600"><Percent size={14} /> Descuento ({discountPercent}% - {discountCode})</span><span className="text-green-600">-{formatClp(discount)}</span></div>
+            <div data-testid="checkout-discount" className="flex justify-between"><span className="flex items-center gap-1 text-green-600"><Percent size={14} /> Descuento ({discountPercent}% - {discountCode})</span><span className="text-green-600">-{formatClp(discount)}</span></div>
           )}
           <div className="flex justify-between"><span className="text-gray-500">IVA incluido</span><span className="font-medium">$0</span></div>
           <div className="border-t pt-2 flex justify-between font-bold text-lg"><span>Total</span><span className="text-primary-600">{formatClp(total)}</span></div>
         </div>
       </div>
 
-      <div className="card p-6 mb-6">
-        <h2 className="font-semibold text-gray-900 mb-4">Medio de pago</h2>
+      <fieldset className="card p-6 mb-6 border-0">
+        <legend className="font-semibold text-gray-900 mb-4">Medio de pago</legend>
         <div className="space-y-3">
-          <label className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${method === 'webpay' ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300'}`}>
+          <label data-testid="payment-webpay" className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${method === 'webpay' ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300'}`}>
             <input type="radio" name="method" value="webpay" checked={method === 'webpay'} onChange={() => setMethod('webpay')} className="accent-primary-600" />
             <div><span className="font-medium text-gray-900">Webpay Plus</span><p className="text-xs text-gray-500">Tarjetas de crédito, débito y prepago</p></div>
           </label>
-          <label className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${method === 'flow' ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300'}`}>
+          <label data-testid="payment-flow" className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${method === 'flow' ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300'}`}>
             <input type="radio" name="method" value="flow" checked={method === 'flow'} onChange={() => setMethod('flow')} className="accent-primary-600" />
             <div><span className="font-medium text-gray-900">Flow</span><p className="text-xs text-gray-500">Transferencia, débito o crédito</p></div>
           </label>
-          <label className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${method === 'transfer' ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300'}`}>
+          <label data-testid="payment-transfer" className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${method === 'transfer' ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300'}`}>
             <input type="radio" name="method" value="transfer" checked={method === 'transfer'} onChange={() => setMethod('transfer')} className="accent-primary-600" />
             <div><span className="font-medium text-gray-900">Transferencia bancaria</span><p className="text-xs text-gray-500">Transferencia directa a cuenta Rut</p></div>
           </label>
         </div>
-      </div>
+      </fieldset>
 
-      <button onClick={handlePay} disabled={paying} className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50">
+      <button data-testid="pay-button" onClick={handlePay} disabled={paying} className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50">
         {paying ? <Loader2 size={18} className="animate-spin" /> : <CreditCard size={18} />}
         {paying ? 'Procesando...' : `Pagar ${formatClp(total)}`}
       </button>

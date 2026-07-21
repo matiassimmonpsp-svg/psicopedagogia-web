@@ -1,7 +1,8 @@
 'use client'
 
 import { Eye, Layers, AlignLeft, CreditCard, Paperclip, FileText, Image as ImageIcon, Edit3, AlertTriangle, BookOpen, Download, Sparkles } from 'lucide-react'
-import { courses, areas, subareas } from '@/lib/mock-data'
+import { courses, areas, subareas } from '@/lib/data'
+import { formatClp } from '@/lib/utils'
 
 interface StepReviewProps {
   resourceType: 'evaluation' | 'educational'
@@ -121,7 +122,7 @@ export default function StepReview({
                 <p className="text-sm">
                   {isFree
                     ? <span className="inline-flex items-center gap-1.5 text-emerald-700 font-bold bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200"><Sparkles size={14} /> Gratuito</span>
-                    : <span className="inline-flex items-center gap-1.5 text-indigo-700 font-bold bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-200">${Number(price).toLocaleString('es-CL')} CLP</span>
+                    : <span className="inline-flex items-center gap-1.5 text-indigo-700 font-bold bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-200">{formatClp(Number(price))} CLP</span>
                   }
                 </p>
                 <button type="button" onClick={() => goToStep(3)} className="text-xs font-semibold text-primary-600 hover:text-primary-700 flex items-center gap-1">
@@ -190,8 +191,7 @@ export default function StepReview({
               <div className="card overflow-hidden group">
                 <div className="aspect-[3/4] relative flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary-100 via-accent-50 to-secondary-100">
                   {previewUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={previewUrl} alt={title} className="w-full h-full object-cover" />
+                    <img src={previewUrl} alt={title} loading="lazy" className="w-full h-full object-cover" />
                   ) : (
                     <div className="text-center p-4">
                       <BookOpen size={40} className="mx-auto text-primary-400 mb-2" />
@@ -219,7 +219,7 @@ export default function StepReview({
                       0
                     </div>
                     <span className={`font-bold text-sm ${isFree ? 'text-green-600' : 'text-primary-600'}`}>
-                      {isFree ? 'Gratuito' : `$${Number(price).toLocaleString('es-CL')}`}
+                      {isFree ? 'Gratuito' : formatClp(Number(price))}
                     </span>
                   </div>
                 </div>

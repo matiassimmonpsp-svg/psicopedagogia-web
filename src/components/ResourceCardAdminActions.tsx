@@ -1,11 +1,14 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import toast from 'react-hot-toast'
 import { Edit, Pause, Play, Trash2 } from 'lucide-react'
 import type { Resource } from '@/lib/data'
+import { csrfFetch } from '@/lib/csrf-client'
 import { logger } from '@/lib/logger'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 interface ResourceCardAdminActionsProps {
   resource: Resource
@@ -19,6 +22,7 @@ export function ResourceCardAdminActions({ resource, isPaused, onUpdate, onUpdat
   const { user } = useAuth()
   const isAdmin = user?.role === 'admin'
   const router = useRouter()
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   if (!isAdmin) return null
 
@@ -26,10 +30,9 @@ export function ResourceCardAdminActions({ resource, isPaused, onUpdate, onUpdat
     e.preventDefault()
     e.stopPropagation()
     try {
-      const res = await fetch(`/api/resources/${resource.id}`, {
+      const res = await csrfFetch(`/api/resources/${resource.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ isActive: !resource.isActive }),
       })
       const data = await res.json()
@@ -50,9 +53,14 @@ export function ResourceCardAdminActions({ resource, isPaused, onUpdate, onUpdat
   async function handleDelete(e: React.MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
-    if (!confirm(`¿Eliminar "${resource.title}"?`)) return
+    setShowDeleteConfirm(true)
+  }
+
+  async function confirmDelete() {
+    setShowDeleteConfirm(false)
+    if (!resource) return
     try {
-      const res = await fetch(`/api/resources/${resource.id}`, { method: 'DELETE', credentials: 'include' })
+      const res = await csrfFetch(`/api/resources/${resource.id}`, { method: 'DELETE' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al eliminar')
       onUpdate?.()
@@ -63,21 +71,33 @@ export function ResourceCardAdminActions({ resource, isPaused, onUpdate, onUpdat
   }
 
   return (
-    <div data-admin-action className="absolute bottom-2 left-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-[3]">
-      <button
-        type="button"
-        data-admin-action
-        onClick={e => { e.preventDefault(); e.stopPropagation(); router.push(`/admin/editar-recurso/${resource.id}`) }}
-        className="flex-1 bg-white/90 backdrop-blur-sm text-gray-700 text-xs font-medium py-1.5 rounded flex items-center justify-center gap-1 hover:bg-blue-50 hover:text-blue-700 transition-colors"
-      >
-        <Edit size={12} /> Editar
-      </button>
-      <button type="button" data-admin-action onClick={handleToggleActive} className="flex-1 bg-white/90 backdrop-blur-sm text-gray-700 text-xs font-medium py-1.5 rounded flex items-center justify-center gap-1 hover:bg-amber-50 hover:text-amber-700 transition-colors">
-        {isPaused ? <Play size={12} /> : <Pause size={12} />} {isPaused ? 'Reanudar' : 'Pausar'}
-      </button>
-      <button type="button" data-admin-action onClick={handleDelete} className="flex-1 bg-white/90 backdrop-blur-sm text-red-600 text-xs font-medium py-1.5 rounded flex items-center justify-center gap-1 hover:bg-red-50 hover:text-red-700 transition-colors">
-        <Trash2 size={12} /> Eliminar
-      </button>
-    </div>
+    <>
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="Eliminar recurso"
+        message={`¿Estás seguro de que deseas eliminar "${resource.title}"? Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        danger
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
+      <div className="absolute bottom-0 left-0 right-0 flex gap-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 z-[3]">
+        <button
+          type="button"
+          data-admin-action
+          aria-label={`Editar ${resource.title}`}
+          onClick={e => { e.preventDefault(); e.stopPropagation(); router.push(`/admin/editar-recurso/${resource.id}`) }}
+          className="flex-1 bg-white/95 backdrop-blur-sm text-gray-700 text-xs font-medium py-2 rounded-bl flex items-center justify-center gap-1 hover:bg-blue-50 hover:text-blue-700 focus:bg-blue-50 focus:text-blue-700 transition-colors border-r border-gray-200"
+        >
+          <Edit size={12} /> Editar
+        </button>
+        <button type="button" data-admin-action data-testid="toggle-active" aria-label={isPaused ? `Reanudar ${resource.title}` : `Pausar ${resource.title}`} onClick={handleToggleActive} className="flex-1 bg-white/95 backdrop-blur-sm text-gray-700 text-xs font-medium py-2 flex items-center justify-center gap-1 hover:bg-amber-50 hover:text-amber-700 focus:bg-amber-50 focus:text-amber-700 transition-colors border-r border-gray-200">
+          {isPaused ? <Play size={12} /> : <Pause size={12} />} {isPaused ? 'Reanudar' : 'Pausar'}
+        </button>
+        <button type="button" data-admin-action data-testid="delete-resource" aria-label={`Eliminar ${resource.title}`} onClick={handleDelete} className="flex-1 bg-white/95 backdrop-blur-sm text-red-600 text-xs font-medium py-2 rounded-br flex items-center justify-center gap-1 hover:bg-red-50 hover:text-red-700 focus:bg-red-50 focus:text-red-700 transition-colors">
+          <Trash2 size={12} /> Eliminar
+        </button>
+      </div>
+    </>
   )
 }

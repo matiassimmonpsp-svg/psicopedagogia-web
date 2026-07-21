@@ -105,6 +105,10 @@ export default function StepFiles({
         ) : (
           <div
             onClick={() => pdfInputRef.current?.click()}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pdfInputRef.current?.click() } }}
+            role="button"
+            tabIndex={0}
+            aria-label="Seleccionar archivo PDF"
             className="group relative border-2 border-dashed border-gray-300 rounded-2xl py-8 text-center hover:border-primary-400 hover:bg-primary-50/40 transition-all cursor-pointer"
           >
             <div className="flex items-center justify-center gap-4">
@@ -187,6 +191,10 @@ export default function StepFiles({
         ) : (
           <div
             onClick={() => editableInputRef.current?.click()}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); editableInputRef.current?.click() } }}
+            role="button"
+            tabIndex={0}
+            aria-label="Seleccionar archivo editable (DOCX o PPTX)"
             className="group relative border-2 border-dashed border-gray-300 rounded-2xl py-8 text-center hover:border-amber-400 hover:bg-amber-50/40 transition-all cursor-pointer"
           >
             <div className="flex items-center justify-center gap-4">
@@ -230,8 +238,7 @@ export default function StepFiles({
         {previewUrl ? (
           <div className="flex flex-col sm:flex-row items-start gap-5 bg-gradient-to-br from-violet-50 to-violet-100/40 border border-violet-200 rounded-2xl p-5 transition-all">
             <div className="w-full sm:w-28 shrink-0 rounded-xl overflow-hidden border-2 border-violet-200 shadow-sm">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={previewUrl} alt="Preview" className="w-full aspect-[3/4] object-cover" />
+              <img src={previewUrl} alt="Preview" loading="lazy" className="w-full aspect-[3/4] object-cover" />
             </div>
             <div className="flex-1">
               <p className="font-semibold text-gray-900 mb-1">{previewFile?.name || 'Imagen actual'}</p>
@@ -251,6 +258,10 @@ export default function StepFiles({
         ) : (
           <div
             onClick={() => previewInputRef.current?.click()}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); previewInputRef.current?.click() } }}
+            role="button"
+            tabIndex={0}
+            aria-label="Seleccionar imagen de portada"
             className="group relative border-2 border-dashed border-gray-300 rounded-2xl py-8 text-center hover:border-violet-400 hover:bg-violet-50/40 transition-all cursor-pointer"
           >
             <div className="flex items-center justify-center gap-4">

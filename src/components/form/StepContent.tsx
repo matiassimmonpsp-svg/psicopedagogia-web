@@ -1,7 +1,6 @@
 'use client'
 
 import { AlignLeft, Type, Tag } from 'lucide-react'
-import { courses } from '@/lib/mock-data'
 import { TagInput } from '@/components/TagInput'
 
 interface StepContentProps {
@@ -32,7 +31,7 @@ export default function StepContent({ title, setTitle, description, setDescripti
         </div>
         <div className="space-y-5">
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+            <label htmlFor="resource-title" className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
               <Type size={14} /> Título <span className="text-red-500">*</span>
             </label>
             <div className="bg-gray-50 border border-gray-200 rounded-xl focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-primary-500 focus-within:bg-white transition-all">
@@ -41,6 +40,7 @@ export default function StepContent({ title, setTitle, description, setDescripti
                   <Type size={16} />
                 </span>
                 <input
+                  id="resource-title"
                   type="text"
                   value={title}
                   onChange={e => setTitle(e.target.value)}
@@ -68,7 +68,7 @@ export default function StepContent({ title, setTitle, description, setDescripti
             </div>
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+            <label htmlFor="resource-description" className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
               <AlignLeft size={14} /> Descripción
             </label>
             <div className="relative">
@@ -76,6 +76,7 @@ export default function StepContent({ title, setTitle, description, setDescripti
                 <AlignLeft size={16} />
               </span>
               <textarea
+                id="resource-description"
                 value={description}
                 onChange={e => setDescription(e.target.value)}
                 rows={4}

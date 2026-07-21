@@ -14,3 +14,5 @@ dev-out.log
 test-results/
 playwright-report/
 tsconfig.tsbuildinfo
+coverage/
+tmp-debug.js

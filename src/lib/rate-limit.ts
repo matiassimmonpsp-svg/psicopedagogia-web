@@ -4,6 +4,7 @@
  */
 
 import { Redis } from '@upstash/redis'
+import crypto from 'crypto'
 
 const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
   ? new Redis({
@@ -13,6 +14,7 @@ const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_RE
   : null
 
 // Fallback en memoria para desarrollo
+const MAX_RATELIMIT_SIZE = 10_000
 const memoria = new Map<string, number[]>()
 
 if (!redis) {
@@ -27,16 +29,41 @@ if (!redis) {
 }
 
 /**
- * Extrae la IP real del request, ignorando X-Forwarded-For spoofed
- * cuando el servidor no está detrás de un proxy confiable.
+ * Extrae la IP real del request.
+ * En producción (detrás de Vercel/Cloudflare), X-Forwarded-For es confiable.
+ * En desarrollo, usa X-Real-IP o fallback a 127.0.0.1.
+ * NUNCA confía en X-Forwarded-For en desarrollo (spoofable por el cliente).
  */
 export function getClientIp(headers: Headers): string {
-  const forwarded = headers.get('x-forwarded-for')
-  if (forwarded) {
-    const first = forwarded.split(',')[0]?.trim()
-    if (first && /^(?:\d{1,3}\.){3}\d{1,3}$/.test(first)) return first
+  // En producción, Vercel/Cloudflare setean X-Forwarded-For de forma confiable
+  if (process.env.NODE_ENV === 'production') {
+    const forwarded = headers.get('x-forwarded-for')
+    if (forwarded) {
+      const first = forwarded.split(',')[0]?.trim()
+      if (first && /^(?:\d{1,3}\.){3}\d{1,3}$/.test(first)) return first
+    }
   }
-  return headers.get('x-real-ip') || '127.0.0.1'
+
+  // X-Real-IP: solo lo setea un reverse proxy (nginx, Caddy), no spoofable por el cliente
+  const realIp = headers.get('x-real-ip')
+  if (realIp && /^(?:\d{1,3}\.){3}\d{1,3}$/.test(realIp)) return realIp
+
+  return '127.0.0.1'
+}
+
+/**
+ * Hashea una IP para almacenamiento seguro (GDPR/Ley 19.628).
+ * La IP hasheada no se puede revertir, pero se puede usar para analytics.
+ */
+export function hashIp(ip: string): string {
+  const salt = process.env.IP_HASH_SALT
+  if (!salt) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('IP_HASH_SALT debe estar configurado en producción')
+    }
+    return crypto.createHash('sha256').update(`dev-salt:${ip}`).digest('hex').slice(0, 16)
+  }
+  return crypto.createHash('sha256').update(`${salt}:${ip}`).digest('hex').slice(0, 16)
 }
 
 /**
@@ -79,6 +106,10 @@ export async function checkRateLimit(key: string, max: number, windowMs: number 
     }
 
     vigentes.push(ahora)
+    if (memoria.size >= MAX_RATELIMIT_SIZE) {
+      const oldest = memoria.keys().next().value
+      if (oldest) memoria.delete(oldest)
+    }
     memoria.set(key, vigentes)
     return { allowed: true }
   }

@@ -7,6 +7,7 @@ export interface Course {
   name: string
   slug: string
   sortOrder: number
+  isActive?: boolean
 }
 
 export interface Area {
@@ -14,6 +15,7 @@ export interface Area {
   name: string
   slug: string
   sortOrder: number
+  isActive?: boolean
 }
 
 export interface Subarea {
@@ -21,6 +23,25 @@ export interface Subarea {
   areaId: number
   name: string
   slug: string
+  sortOrder?: number
+  isActive?: boolean
+}
+
+/** Área con subáreas y conteo de recursos (usado en admin) */
+export interface AreaWithSubareas extends Area {
+  subareas: (Subarea & { _count: { resources: number } })[]
+  _count: { resources: number }
+}
+
+/** Subárea con conteo de recursos (usado en admin) */
+export interface SubareaWithCount {
+  id: number
+  areaId: number
+  name: string
+  slug: string
+  sortOrder: number
+  isActive: boolean
+  _count: { resources: number }
 }
 
 // ============================================================
@@ -79,14 +100,6 @@ export interface CartItem {
   courseName: string
 }
 
-// Respuesta estándar de la API
-export interface ApiResponse<T = unknown> {
-  success?: boolean
-  error?: string
-  message?: string
-  data?: T
-}
-
 // Elemento de descarga (desde /api/downloads)
 export interface DownloadItem {
   id: string
@@ -101,4 +114,5 @@ export interface DownloadItem {
   date: string
   type: 'purchased' | 'free'
   isActive?: boolean
+  areaIsActive?: boolean
 }

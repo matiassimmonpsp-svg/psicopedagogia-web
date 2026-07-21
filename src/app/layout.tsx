@@ -6,13 +6,38 @@ import { Footer } from '@/components/Footer'
 import { ScrollToTop } from '@/components/ScrollToTop'
 import { AuthProvider } from '@/context/AuthContext'
 import { CartProvider } from '@/context/CartContext'
+import { SITE_URL } from '@/lib/site-url'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'], display: 'swap' })
 
 export const metadata: Metadata = {
-  title: 'Psicopedagogía Chile - Material de Evaluación Informal',
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: 'Psicopedagogía Chile - Material de Evaluación Psicopedagógica',
+    template: '%s | Psicopedagogía Chile',
+  },
   description: 'Plataforma profesional de material e instrumentos de evaluación psicopedagógica para el sistema escolar chileno, desde Prekínder hasta 8° Básico.',
+  keywords: ['psicopedagogía', 'evaluación', 'material educativo', 'chile', 'sistema escolar', 'instruments de evaluación', 'Prekínder', 'Básico'],
+  authors: [{ name: 'Psicopedagogía Chile' }],
+  creator: 'Psicopedagogía Chile',
+  alternates: { canonical: '/' },
+  openGraph: {
+    type: 'website',
+    locale: 'es_CL',
+    siteName: 'Psicopedagogía Chile',
+    title: 'Psicopedagogía Chile - Material de Evaluación Psicopedagógica',
+    description: 'Plataforma profesional de material e instrumentos de evaluación psicopedagógica para el sistema escolar chileno.',
+    images: [{ url: '/social/og-default.png', width: 1200, height: 630, alt: 'Psicopedagogía Chile' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Psicopedagogía Chile - Material de Evaluación Psicopedagógica',
+    description: 'Plataforma profesional de material e instrumentos de evaluación psicopedagógica para el sistema escolar chileno.',
+    images: ['/social/og-default.png'],
+  },
+  robots: { index: true, follow: true },
+  icons: { icon: '/favicon.svg' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -22,6 +47,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProvider>
           <CartProvider>
             <ScrollToTop />
+            <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[9999] focus:bg-primary-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+              Saltar al contenido principal
+            </a>
             <Toaster
               position="bottom-right"
               toastOptions={{
@@ -49,7 +77,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               }}
             />
             <Navbar />
-            <main className="flex-1">{children}</main>
+            <main id="main-content" className="flex-1">{children}</main>
             <Footer />
           </CartProvider>
         </AuthProvider>

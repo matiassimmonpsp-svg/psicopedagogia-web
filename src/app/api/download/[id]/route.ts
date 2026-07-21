@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getSession } from '@/lib/auth'
-import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
+import { enforceRateLimit, requireSession } from '@/lib/api-helpers'
+import { getClientIp, hashIp } from '@/lib/rate-limit'
+import { generateSlug } from '@/lib/utils'
+import { logger } from '@/lib/logger'
 import { createReadStream, existsSync } from 'fs'
 import { stat } from 'fs/promises'
 import path from 'path'
@@ -33,22 +35,30 @@ const MIME: Record<string, string> = {
 }
 
 /** GET /api/download/[id] — Descarga un recurso (PDF o editable) */
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params: p }: { params: { id: string } }) {
+  const params = await p
+  const rateLimited = await enforceRateLimit(request, 'download', 20)
+  if (rateLimited) return rateLimited
+
   const ip = getClientIp(request.headers)
-  const rateLimit = await checkRateLimit(`download:${ip}`, 20, 60_000)
-  if (!rateLimit.allowed) {
-    return NextResponse.json({ error: 'Demasiadas descargas. Espera 1 minuto.' }, { status: 429 })
-  }
-
   try {
-    const user = await getSession()
-    if (!user) return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 })
+    const user = await requireSession()
+    if (user instanceof NextResponse) return user
 
-    const resource = await prisma.resource.findUnique({ where: { id: params.id } })
+    const resource = await prisma.resource.findUnique({
+      where: { id: params.id },
+      include: { area: { select: { isActive: true } } },
+    })
     if (!resource) return NextResponse.json({ error: 'Recurso no encontrado' }, { status: 404 })
 
-    if (resource.isActive === false) {
-      return NextResponse.json({ error: 'Este recurso no está disponible temporalmente debido a ajustes en su contenido.' }, { status: 403 })
+    if (user.role !== 'admin') {
+      if (resource.isActive === false) {
+        return NextResponse.json({ error: 'Este recurso no está disponible temporalmente debido a ajustes en su contenido.' }, { status: 403 })
+      }
+
+      if (resource.area?.isActive === false) {
+        return NextResponse.json({ error: 'El área de este recurso no está disponible temporalmente. Vuelve a intentar más adelante.' }, { status: 403 })
+      }
     }
 
     const promoActiva = !!(resource.promoFreeUntil && new Date(resource.promoFreeUntil) > new Date())
@@ -81,19 +91,25 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const archivo = resolverArchivo(rutaArchivo)
     if (!archivo) return NextResponse.json({ error: 'Archivo no encontrado' }, { status: 404 })
 
-    /* Registrar descarga (solo PDF, no editable) */
+    /* Registrar descarga (solo PDF, no editable) — parallelize independent writes */
     if (tipo !== 'editable') {
-      await prisma.download.create({
-        data: { userId: user.id, resourceId: resource.id, ipAddress: ip },
-      }).catch(() => {})
-      await prisma.resource.update({
-        where: { id: resource.id },
-        data: { downloadsCount: { increment: 1 } },
-      }).catch(() => {})
+      await Promise.all([
+        prisma.download.create({
+          data: { userId: user.id, resourceId: resource.id, ipAddress: hashIp(ip) },
+        }).catch((err: unknown) => {
+          logger.warn('Error al registrar descarga', { error: err instanceof Error ? err.message : err })
+        }),
+        prisma.resource.update({
+          where: { id: resource.id },
+          data: { downloadsCount: { increment: 1 } },
+        }).catch((err: unknown) => {
+          logger.warn('Error al incrementar contador de descargas', { error: err instanceof Error ? err.message : err })
+        }),
+      ])
     }
 
     const ext = path.extname(archivo).toLowerCase()
-    const nombreSeguro = resource.title.replace(/[^a-z0-9]+/gi, '-')
+    const nombreSeguro = generateSlug(resource.title)
     const fileStat = await stat(archivo)
     const fileStream = createReadStream(archivo)
     const webStream = Readable.toWeb(fileStream) as ReadableStream
@@ -106,6 +122,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       },
     })
   } catch (err: unknown) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'Error al descargar' }, { status: 500 })
+    logger.error('Error al descargar recurso', { error: err instanceof Error ? err.message : err })
+    return NextResponse.json({ error: 'Error al descargar' }, { status: 500 })
   }
 }

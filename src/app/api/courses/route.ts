@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 /** GET /api/courses — Devuelve cursos, áreas y subáreas de la base de datos */
 export async function GET() {
@@ -12,7 +13,7 @@ export async function GET() {
 
     return NextResponse.json({ courses, areas, subareas })
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Error al obtener datos'
-    return NextResponse.json({ error: msg }, { status: 500 })
+    logger.error('Error al obtener cursos', { error: err instanceof Error ? err.message : err })
+    return NextResponse.json({ error: 'Error al obtener datos' }, { status: 500 })
   }
 }

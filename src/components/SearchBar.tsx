@@ -27,8 +27,10 @@ export function SearchBar({ large = false, className = '' }: { large?: boolean; 
 
   return (
     <form onSubmit={handleSubmit} className={`relative w-full ${className}`}>
+      <label htmlFor={large ? 'search-large' : 'search-small'} className="sr-only">Buscar</label>
       <Search size={large ? 20 : 16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
       <input
+        id={large ? 'search-large' : 'search-small'}
         type="text"
         value={query}
         onChange={e => setQuery(e.target.value)}

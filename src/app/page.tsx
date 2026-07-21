@@ -1,20 +1,35 @@
 import Link from 'next/link'
+import Script from 'next/script'
 import { ArrowRight, BookOpen, Brain, Shield } from 'lucide-react'
-import { courses, areas } from '@/lib/mock-data'
+import { courses, areas } from '@/lib/data'
 import { SearchBar } from '@/components/SearchBar'
 import { HomeContent } from '@/components/HomeContent'
+import { SITE_URL } from '@/lib/site-url'
+import type { Metadata } from 'next'
 
-/**
- * Página de inicio de la plataforma.
- *
- * Muestra un hero con título, descripción y botones de acción (registro y explorar).
- * Incluye una barra de búsqueda prominente, tarjetas de características de la plataforma,
- * botones para filtrar por área de conocimiento, y el contenido dinámico (HomeContent)
- * con recursos destacados y newsletter.
- */
+export const metadata: Metadata = {
+  title: 'Psicopedagogía Chile - Evaluaciones y Material Educativo',
+  description: 'Descarga instrumentos de evaluación psicopedagógica, material educativo y recursos profesionales para el sistema escolar chileno. Prekínder a 8° Básico.',
+  openGraph: {
+    title: 'Psicopedagogía Chile - Evaluaciones y Material Educativo',
+    description: 'Instrumentos de evaluación psicopedagógica y material educativo para el sistema escolar chileno.',
+    images: [{ url: '/social/post1.svg', width: 1200, height: 630 }],
+  },
+}
+
+const orgJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Psicopedagogía Chile',
+  url: SITE_URL,
+  description: 'Plataforma profesional de material e instrumentos de evaluación psicopedagógica para el sistema escolar chileno.',
+  sameAs: [],
+}
+
 export default function Home() {
   return (
     <>
+      <Script id="org-jsonld" type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }} />
       <section className="bg-gradient-to-br from-primary-600 via-primary-700 to-accent-700 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
           <div className="max-w-3xl">
@@ -55,21 +70,21 @@ export default function Home() {
             <div className="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center mx-auto mb-4">
               <BookOpen size={24} className="text-primary-600" />
             </div>
-            <h3 className="font-semibold text-gray-900 mb-2">Basado en el sistema chileno</h3>
+            <h2 className="font-semibold text-gray-900 mb-2">Basado en el sistema chileno</h2>
             <p className="text-sm text-gray-500">Contenido organizado por curso desde Prekínder hasta 8° Básico, alineado con el currículum nacional.</p>
           </div>
           <div className="text-center p-6">
             <div className="w-12 h-12 bg-secondary-100 rounded-xl flex items-center justify-center mx-auto mb-4">
               <Shield size={24} className="text-secondary-600" />
             </div>
-            <h3 className="font-semibold text-gray-900 mb-2">Evaluación informal</h3>
+            <h2 className="font-semibold text-gray-900 mb-2">Evaluación informal</h2>
             <p className="text-sm text-gray-500">Instrumentos diseñados por profesionales para la evaluación psicopedagógica en contexto educativo.</p>
           </div>
           <div className="text-center p-6">
             <div className="w-12 h-12 bg-accent-100 rounded-xl flex items-center justify-center mx-auto mb-4">
               <Brain size={24} className="text-accent-600" />
             </div>
-            <h3 className="font-semibold text-gray-900 mb-2">Tres áreas clave</h3>
+            <h2 className="font-semibold text-gray-900 mb-2">Tres áreas clave</h2>
             <p className="text-sm text-gray-500">Lectoescritura, pensamiento lógico matemático y habilidades cognitivas con sus respectivas subáreas.</p>
           </div>
         </div>

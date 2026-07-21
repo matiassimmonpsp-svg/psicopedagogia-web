@@ -38,19 +38,20 @@ export function InstagramWidget() {
           target="_blank"
           rel="noopener noreferrer"
           className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
+          aria-label={`Síguenos en Instagram (se abre en nueva ventana)`}
         >
           @{INSTAGRAM_USER} <ExternalLink size={14} />
         </a>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {posts.map(post => (
-          <a key={post.id} href={post.permalink} target="_blank" rel="noopener noreferrer" className="card overflow-hidden group">
+          <a key={post.id} href={post.permalink} target="_blank" rel="noopener noreferrer" aria-label={`Publicación de Instagram: ${post.caption}`} className="card overflow-hidden group">
             <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
               <Instagram size={32} className="text-gray-400" />
             </div>
             <div className="p-3">
               <p className="text-xs text-gray-600 line-clamp-2">{post.caption}</p>
-              <p className="text-[10px] text-gray-400 mt-1">
+              <p className="text-[10px] text-gray-500 mt-1">
                 {new Date(post.postedAt).toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })}
               </p>
             </div>

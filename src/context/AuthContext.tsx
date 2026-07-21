@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { useSWRConfig } from 'swr'
 import type { AuthUser } from '@/lib/auth'
+import { csrfFetch, clearCsrfToken } from '@/lib/csrf-client'
 
 /** Tipo del contexto de autenticación */
 interface AuthContextType {
@@ -33,6 +34,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const { cache } = useSWRConfig()
+
+  /** Clear all catalog-related SWR cache entries */
+  const clearCatalogCache = useCallback(() => {
+    Array.from(cache.keys()).forEach(key => {
+      if (typeof key === 'string' && (key.startsWith('/api/catalog') || key.startsWith('/api/home-featured'))) cache.delete(key)
+    })
+  }, [cache])
 
   /**
    * Refresca el estado del usuario consultando /api/auth/me.
@@ -70,9 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await res.json()
       if (!res.ok) return data.error || 'Error al iniciar sesión'
       // Limpiar caché SWR del catálogo antes de refresh para que no sirva datos del usuario anterior
-      Array.from(cache.keys()).forEach(key => {
-        if (typeof key === 'string' && key.startsWith('/api/catalog')) cache.delete(key)
-      })
+      clearCatalogCache()
       await refresh()
       return null
     } catch {
@@ -93,9 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       const data = await res.json()
       if (!res.ok) return data.error || 'Error al registrarse'
-      Array.from(cache.keys()).forEach(key => {
-        if (typeof key === 'string' && key.startsWith('/api/catalog')) cache.delete(key)
-      })
+      clearCatalogCache()
       await refresh()
       return null
     } catch {
@@ -110,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    */
   const logout = async () => {
     try {
-      const res = await fetch('/api/auth/logout', { method: 'POST' })
+      const res = await csrfFetch('/api/auth/logout', { method: 'POST' })
       if (!res.ok) {
         toast.error('Error al cerrar sesión')
         return
@@ -127,10 +131,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       setUser(null)
+      clearCsrfToken()
       toast.success('Sesión cerrada')
-      Array.from(cache.keys()).forEach(key => {
-        if (typeof key === 'string' && key.startsWith('/api/catalog')) cache.delete(key)
-      })
+      clearCatalogCache()
       router.push('/')
       router.refresh()
     } catch {

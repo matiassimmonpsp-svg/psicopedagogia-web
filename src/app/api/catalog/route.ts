@@ -1,50 +1,57 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
-import { allResources as mockResources, courses as mockCourses, areas as mockAreas, subareas as mockSubareas } from '@/lib/data'
+import { enforceRateLimit } from '@/lib/api-helpers'
+import { logger } from '@/lib/logger'
 
 /**
- * GET /api/catalog — Devuelve todos los recursos desde la BD.
- * En desarrollo (NODE_ENV !== 'production'), incluye mock data como fallback.
- * Si el usuario está autenticado, incluye `isOwned` para cada recurso.
+ * GET /api/catalog — Devuelve recursos paginados desde la BD.
+ * Pagination is done at the SQL level (skip/take) for performance.
  */
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
-  const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '12', 10)))
+  try {
+    const rateLimited = await enforceRateLimit(request, 'catalog', 60)
+    if (rateLimited) return rateLimited
 
-  const session = await getSession().catch(() => null)
-  const isAdmin = session?.role === 'admin'
+    const { searchParams } = new URL(request.url)
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
+    const limit = Math.min(200, Math.max(1, parseInt(searchParams.get('limit') || '12', 10)))
+    const skip = (page - 1) * limit
 
-  const dbResources = await prisma.resource.findMany({
-      where: isAdmin ? {} : { isActive: true },
-      select: {
-        id: true, title: true, description: true, filePath: true, previewPath: true,
-        resourceType: true, isFree: true, priceClp: true, promoFreeUntil: true,
-        courseId: true, areaId: true, subareaId: true, downloadsCount: true, isActive: true,
-        course: { select: { name: true, slug: true } },
-        area: { select: { name: true, slug: true } },
-        subarea: { select: { name: true, slug: true } },
-        tags: { select: { tag: { select: { name: true } } } },
-      },
-      orderBy: { createdAt: 'desc' },
-    })
+    const session = await getSession().catch(() => null)
+    const isAdmin = session?.role === 'admin'
 
-  let ownedResourceIds: Set<string> = new Set()
-  if (session) {
-    const ownedItems = await prisma.orderItem.findMany({
-      where: { order: { userId: session.id, status: 'completed' } },
-      select: { resourceId: true },
-    })
-    ownedResourceIds = new Set(ownedItems.map(i => i.resourceId))
-  }
+    const where = isAdmin
+      ? {}
+      : { isActive: true, area: { isActive: true } }
 
-  const combined = [
-    ...dbResources.map(r => ({
+    const select = {
+      id: true, title: true, description: true, previewPath: true,
+      resourceType: true, isFree: true, priceClp: true, promoFreeUntil: true,
+      courseId: true, areaId: true, subareaId: true, downloadsCount: true, isActive: true,
+      course: { select: { name: true, slug: true } },
+      area: { select: { name: true, slug: true, isActive: true } },
+      subarea: { select: { name: true, slug: true, isActive: true } },
+      tags: { select: { tag: { select: { name: true } } } },
+    } as const
+
+    const [resources, total, ownedItems] = await Promise.all([
+      prisma.resource.findMany({ where, select, orderBy: { createdAt: 'desc' }, skip, take: limit }),
+      prisma.resource.count({ where }),
+      session
+        ? prisma.orderItem.findMany({
+            where: { order: { userId: session.id, status: 'completed' } },
+            select: { resourceId: true },
+          })
+        : [],
+    ])
+
+    const ownedResourceIds = new Set(ownedItems.map(i => i.resourceId))
+
+    const mapped = resources.map(r => ({
       id: r.id,
       title: r.title,
       description: r.description,
-      filePath: r.filePath,
       previewPath: r.previewPath,
       resourceType: r.resourceType,
       isFree: r.isFree,
@@ -63,33 +70,14 @@ export async function GET(request: Request) {
       subareaSlug: r.subarea?.slug || null,
       tags: r.tags.map(t => t.tag.name),
       isOwned: ownedResourceIds.has(r.id),
-      source: 'db' as const,
-    })),
-    // Mock data solo en desarrollo
-    ...(process.env.NODE_ENV !== 'production'
-      ? mockResources.filter(m => !dbResources.some(d => d.id === m.id)).map(m => ({
-          ...m,
-          courseSlug: mockCourses.find(c => c.id === m.courseId)?.slug || null,
-          areaSlug: mockAreas.find(a => a.id === m.areaId)?.slug || null,
-          isOwned: false,
-          source: 'mock' as const,
-        }))
-      : []),
-  ]
+    }))
 
-  const total = combined.length
-  const paginated = combined.slice((page - 1) * limit, (page - 1) * limit + limit)
-
-  return NextResponse.json({
-    resources: paginated,
-    courses: mockCourses,
-    areas: mockAreas,
-    subareas: mockSubareas,
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-    },
-  })
+    return NextResponse.json({
+      resources: mapped,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    })
+  } catch (err: unknown) {
+    logger.error('Error al obtener catálogo', { error: err instanceof Error ? err.message : err })
+    return NextResponse.json({ error: 'Error al obtener catálogo' }, { status: 500 })
+  }
 }

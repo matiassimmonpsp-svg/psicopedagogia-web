@@ -8,10 +8,12 @@ import type { Resource } from '@/lib/data'
 interface ResourceCardPreviewProps {
   resource: Resource
   isPaused: boolean
+  isPriority?: boolean
+  children?: React.ReactNode
 }
 
 /** Vista previa de imagen de la tarjeta */
-export function ResourceCardPreview({ resource, isPaused }: ResourceCardPreviewProps) {
+export function ResourceCardPreview({ resource, isPaused, isPriority, children }: ResourceCardPreviewProps) {
   const [imgError, setImgError] = useState(false)
 
   const hasCustomPreview = resource.previewPath && resource.previewPath !== '/previews/placeholder.svg' && !imgError
@@ -24,6 +26,7 @@ export function ResourceCardPreview({ resource, isPaused }: ResourceCardPreviewP
           alt={resource.title}
           fill
           className="object-cover"
+          priority={isPriority}
           onError={() => setImgError(true)}
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
         />
@@ -37,6 +40,8 @@ export function ResourceCardPreview({ resource, isPaused }: ResourceCardPreviewP
       )}
 
       {isPaused && <div className="absolute inset-0 bg-black/50 z-[1]" />}
+
+      {children}
     </div>
   )
 }

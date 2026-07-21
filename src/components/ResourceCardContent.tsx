@@ -1,6 +1,4 @@
-'use client'
-
-import { Download, Coffee, BookOpen, Clock } from 'lucide-react'
+import { Download, Coffee, Clock } from 'lucide-react'
 import type { Resource } from '@/lib/data'
 import { formatClp } from '@/lib/utils'
 
@@ -23,7 +21,7 @@ export function ResourceCardContent({ resource, promoActive, isPaused }: Resourc
         ))}
       </div>
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1 text-xs text-gray-400">
+        <div className="flex items-center gap-1 text-xs text-gray-500">
           <Download size={12} />
           {resource.downloadsCount}
         </div>
@@ -35,7 +33,7 @@ export function ResourceCardContent({ resource, promoActive, isPaused }: Resourc
           ) : resource.isFree ? (
             <span className="text-green-600 flex items-center gap-1"><Coffee size={14} /> Gratuito</span>
           ) : (
-            <span className="text-primary-600">{formatClp(resource.priceClp!)}</span>
+            <span className="text-primary-600">{formatClp(resource.priceClp ?? 0)}</span>
           )}
         </span>
       </div>

@@ -3,6 +3,7 @@
 import { Eye, Edit, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import type { Resource } from '@/lib/data'
+import { formatClp } from '@/lib/utils'
 
 /**
  * Props del componente ResourceTable.
@@ -34,10 +35,10 @@ interface ResourceTableProps {
  * @param onToggleActive - Función para cambiar el estado activo.
  */
 export default function ResourceTable({ resources, loading, onDelete, showStatus, onToggleActive }: ResourceTableProps) {
-  if (loading) return <div className="p-8 text-center text-gray-400">Cargando...</div>
+  if (loading) return <div className="p-8 text-center text-gray-500">Cargando...</div>
 
   if (resources.length === 0) {
-    return <div className="p-8 text-center text-gray-400">No hay recursos aún</div>
+    return <div className="p-8 text-center text-gray-500">No hay recursos aún</div>
   }
 
   return (
@@ -64,7 +65,7 @@ export default function ResourceTable({ resources, loading, onDelete, showStatus
                   {r.resourceType === 'educational' ? 'Material' : 'Evaluación'}
                 </span>
               </td>
-              <td className="py-3 px-4 text-gray-500">{r.isFree ? 'Gratis' : `$${r.priceClp}`}</td>
+              <td className="py-3 px-4 text-gray-500">{r.isFree ? 'Gratis' : formatClp(r.priceClp ?? 0)}</td>
               <td className="py-3 px-4 text-gray-500">{r.downloadsCount}</td>
               {showStatus && (
                 <td className="py-3 px-4">

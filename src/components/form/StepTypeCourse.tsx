@@ -2,27 +2,7 @@
 
 import { BookOpen, FileText, School } from 'lucide-react'
 import ToggleGroup from '@/components/ToggleGroup'
-
-interface Course {
-  id: number
-  name: string
-  slug: string
-  sortOrder: number
-}
-
-interface Area {
-  id: number
-  name: string
-  slug: string
-  sortOrder: number
-}
-
-interface Subarea {
-  id: number
-  name: string
-  slug: string
-  areaId: number
-}
+import type { Course, Area, Subarea } from '@/lib/interfaces'
 
 interface StepTypeCourseProps {
   resourceType: 'evaluation' | 'educational'
@@ -61,11 +41,12 @@ export default function StepTypeCourse({ resourceType, setResourceType, courseId
             <BookOpen size={20} className="text-primary-700" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Tipo de material</h2>
+            <h2 id="step-type-heading" className="text-lg font-bold text-gray-900">Tipo de material</h2>
             <p className="text-sm text-gray-500">¿Esto es una evaluación o un material educativo?</p>
           </div>
         </div>
         <ToggleGroup
+          ariaLabelledby="step-type-heading"
           options={[
             { value: 'evaluation', label: 'Evaluación informal', icon: <FileText size={16} />, activeBg: 'bg-primary-50', activeText: 'text-primary-700', activeBorder: 'border-primary-500', iconBg: 'bg-blue-200', iconColor: 'text-blue-700' },
             { value: 'educational', label: 'Material educativo', icon: <BookOpen size={16} />, activeBg: 'bg-primary-50', activeText: 'text-primary-700', activeBorder: 'border-primary-500', iconBg: 'bg-emerald-200', iconColor: 'text-emerald-700' },
@@ -87,22 +68,22 @@ export default function StepTypeCourse({ resourceType, setResourceType, courseId
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Curso <span className="text-red-400">*</span></label>
-            <select value={courseId} onChange={e => setCourseId(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all appearance-none">
+            <label htmlFor="course-select" className="text-xs font-bold text-gray-400 uppercase tracking-wider">Curso <span className="text-red-400">*</span></label>
+            <select id="course-select" value={courseId} onChange={e => setCourseId(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all appearance-none">
               <option value="">Seleccionar...</option>
               {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Área <span className="text-red-400">*</span></label>
-            <select value={areaId} onChange={e => { setAreaId(e.target.value); setSubareaId('') }} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all appearance-none">
+            <label htmlFor="area-select" className="text-xs font-bold text-gray-400 uppercase tracking-wider">Área <span className="text-red-400">*</span></label>
+            <select id="area-select" value={areaId} onChange={e => { setAreaId(e.target.value); setSubareaId('') }} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all appearance-none">
               <option value="">Seleccionar...</option>
               {areas.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Subárea <span className="text-xs text-gray-400 font-normal normal-case">(opcional)</span></label>
-            <select value={subareaId} onChange={e => setSubareaId(e.target.value)} disabled={!areaId || filteredSubareas.length === 0} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all appearance-none disabled:opacity-50 disabled:cursor-not-allowed">
+            <label htmlFor="subarea-select" className="text-xs font-bold text-gray-400 uppercase tracking-wider">Subárea <span className="text-xs text-gray-400 font-normal normal-case">(opcional)</span></label>
+            <select id="subarea-select" value={subareaId} onChange={e => setSubareaId(e.target.value)} disabled={!areaId || filteredSubareas.length === 0} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all appearance-none disabled:opacity-50 disabled:cursor-not-allowed">
               <option value="">Seleccionar...</option>
               {filteredSubareas.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>

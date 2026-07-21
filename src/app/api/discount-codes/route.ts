@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { csrfCheck } from '@/lib/csrf'
 import { validateDiscountCode } from '@/lib/discount'
+import { requireAdminWithCsrf, enforceRateLimit, requireAdminSession } from '@/lib/api-helpers'
+import { logger } from '@/lib/logger'
 
 /** GET /api/discount-codes — Lista todos los códigos de descuento */
 export async function GET() {
-  const admin = await requireAdmin()
-  if (!admin) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  try {
+    const admin = await requireAdminSession()
+    if (admin instanceof NextResponse) return admin
 
-  const codes = await prisma.discountCode.findMany({ orderBy: { createdAt: 'desc' } })
-  return NextResponse.json({ codes })
+    const codes = await prisma.discountCode.findMany({ orderBy: { createdAt: 'desc' } })
+    return NextResponse.json({ codes })
+  } catch (err: unknown) {
+    logger.error('Error al obtener códigos de descuento', { error: err instanceof Error ? err.message : err })
+    return NextResponse.json({ error: 'Error al obtener códigos' }, { status: 500 })
+  }
 }
 
 /** POST /api/discount-codes — Crea o verifica un código de descuento */
@@ -18,30 +23,38 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    /* Verificar código (público) */
+    /* Verificar código (público) — rate limit para evitar brute-force */
     if (body.action === 'verify') {
+      const rateLimited = await enforceRateLimit(request, 'discount-verify', 10)
+      if (rateLimited) return rateLimited
+
       const result = await validateDiscountCode(body.code, body.cartTotal)
       if (!result.valid) {
         return NextResponse.json({ error: result.error }, { status: 400 })
       }
       return NextResponse.json({
-        code: result.code,
+        valid: true,
         discount: result.discount,
-        discountPercent: result.discountPercent,
       })
     }
 
     /* Crear código (solo admin) */
-    const csrf = csrfCheck(request)
-    if (csrf) return csrf
-    const admin = await requireAdmin()
-    if (!admin) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    const authError = await requireAdminWithCsrf(request)
+    if (authError) return authError
+
+    const rateLimited = await enforceRateLimit(request, 'discount-create', 20)
+    if (rateLimited) return rateLimited
 
     const { code, discountPercent, discountPct, maxUses, expiresAt } = body
     const pct = discountPercent ?? discountPct
 
     if (!code || !pct) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 })
+    }
+
+    const parsedPct = parseInt(pct)
+    if (isNaN(parsedPct) || parsedPct < 1 || parsedPct > 100) {
+      return NextResponse.json({ error: 'El porcentaje debe ser entre 1 y 100' }, { status: 400 })
     }
 
     const existente = await prisma.discountCode.findUnique({ where: { code } })
@@ -58,6 +71,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ code: nuevo }, { status: 201 })
   } catch (err: unknown) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'Error al crear código' }, { status: 500 })
+    logger.error('Error al crear código de descuento', { error: err instanceof Error ? err.message : err })
+    return NextResponse.json({ error: 'Error al crear código' }, { status: 500 })
   }
 }

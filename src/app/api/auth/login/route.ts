@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { authenticateUser, signToken } from '@/lib/auth'
-import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
+import { authenticateUser, signToken, SESSION_COOKIE } from '@/lib/auth'
+import { enforceRateLimit } from '@/lib/api-helpers'
+import { logger } from '@/lib/logger'
 import { cookies } from 'next/headers'
 
 /** POST /api/auth/login — Inicia sesión y crea cookie de sesión */
 export async function POST(request: NextRequest) {
-  const ip = getClientIp(request.headers)
-  const rateLimit = await checkRateLimit(`login:${ip}`, 5, 60_000)
-  if (!rateLimit.allowed) {
-    return NextResponse.json({ error: 'Demasiados intentos. Espera 1 minuto.' }, { status: 429 })
-  }
+  const rateLimited = await enforceRateLimit(request, 'login', 5)
+  if (rateLimited) return rateLimited
 
   try {
     const { email, password } = await request.json()
@@ -20,14 +18,21 @@ export async function POST(request: NextRequest) {
     const user = await authenticateUser(email, password)
     const token = await signToken(user)
 
-    ;(await cookies()).set('session', token, {
+    ;(await cookies()).set(SESSION_COOKIE, token, {
       httpOnly: true, secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict', path: '/', maxAge: 7 * 24 * 60 * 60,
+      sameSite: 'strict', path: '/', maxAge: 30 * 24 * 60 * 60,
     })
 
     return NextResponse.json({ user })
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error al iniciar sesión'
-    return NextResponse.json({ error: message }, { status: 401 })
+    logger.error('Error al iniciar sesión', { error: err instanceof Error ? err.message : err })
+    const isAuthError = err instanceof Error && (
+      err.message === 'Correo o contraseña incorrectos' ||
+      err.message.includes('credenciales')
+    )
+    return NextResponse.json(
+      { error: isAuthError ? 'Correo o contraseña incorrectos' : 'Error al iniciar sesión' },
+      { status: isAuthError ? 401 : 500 },
+    )
   }
 }

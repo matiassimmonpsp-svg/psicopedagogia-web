@@ -9,6 +9,7 @@ export interface DiscountResult {
   valid: boolean
   discount?: number
   discountPercent?: number
+  discountCodeId?: number
   code?: string
   error?: string
 }
@@ -26,27 +27,19 @@ export async function validateDiscountCode(
     where: { code: code.toUpperCase() },
   })
 
-  if (!found) {
+  if (!found || !found.isActive || (found.maxUses != null && found.usedCount >= found.maxUses) || (found.expiresAt && new Date(found.expiresAt) < new Date())) {
     return { valid: false, error: 'Código no válido' }
   }
 
-  if (!found.isActive) {
-    return { valid: false, error: 'Este código ya no está activo' }
-  }
-
-  if (found.maxUses && found.usedCount >= found.maxUses) {
-    return { valid: false, error: 'Este código ya alcanzó su límite de usos' }
-  }
-
-  if (found.expiresAt && new Date(found.expiresAt) < new Date()) {
-    return { valid: false, error: 'Este código ha expirado' }
-  }
-
   const discountPercent = found.discountPct
+  if (discountPercent < 1 || discountPercent > 100) {
+    return { valid: false, error: 'Configuración de descuento inválida' }
+  }
   const discount = Math.round((cartTotal || 0) * discountPercent / 100)
 
   return {
     valid: true,
+    discountCodeId: found.id,
     code: found.code,
     discount,
     discountPercent,

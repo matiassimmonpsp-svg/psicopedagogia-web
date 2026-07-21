@@ -1,27 +1,39 @@
 import useSWR from 'swr'
-import { useCallback, useState, useEffect } from 'react'
+import { useCallback } from 'react'
 import toast from 'react-hot-toast'
-import type { Resource } from '@/lib/data'
+import { csrfFetch } from '@/lib/csrf-client'
 import { useAuth } from '@/context/AuthContext'
+import type { Resource, Course, Area, Subarea } from '@/lib/interfaces'
 
-/** Fetcher que incluye cookies de sesión para autenticación */
-const fetcher = (url: string) => fetch(url, { credentials: 'include', cache: 'no-store' }).then(r => r.json())
+/** Fetcher que incluye cookies de sesión para autenticación y verifica res.ok */
+const fetcher = async (url: string) => {
+  const res = await fetch(url, { credentials: 'include' })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body?.error || `Error ${res.status}`)
+  }
+  return res.json()
+}
+
+interface CatalogData {
+  resources: Resource[]
+}
 
 /** Hook para obtener datos del catálogo con caché SWR y refresh manual */
 export function useCatalog() {
   const { user } = useAuth()
-  const swrKey = user ? `/api/catalog?u=${user.id}` : '/api/catalog'
-  const { data, error, isLoading, mutate } = useSWR(swrKey, fetcher, {
+  const swrKey = user ? `/api/catalog?limit=200&u=${user.id}` : '/api/catalog?limit=200'
+  const { data, error, isLoading, mutate } = useSWR<CatalogData>(swrKey, fetcher, {
     revalidateOnFocus: false,
     dedupingInterval: 60_000,
   })
 
   const updateResource = useCallback((id: string, updates: Partial<Resource>) => {
-    mutate((current: any) => {
+    mutate((current) => {
       if (!current?.resources) return current
       return {
         ...current,
-        resources: current.resources.map((r: Resource) =>
+        resources: current.resources.map((r) =>
           r.id === id ? { ...r, ...updates } : r
         ),
       }
@@ -44,9 +56,8 @@ export function useCatalog() {
  */
 export function useResourceActions(refresh: () => void) {
   const handleDelete = useCallback(async (id: string, title: string) => {
-    if (!confirm(`¿Eliminar "${title}"? Esta acción no se puede deshacer.`)) return
     try {
-      const res = await fetch(`/api/resources/${id}`, { method: 'DELETE', credentials: 'include' })
+      const res = await csrfFetch(`/api/resources/${id}`, { method: 'DELETE' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al eliminar')
       refresh()
@@ -57,10 +68,9 @@ export function useResourceActions(refresh: () => void) {
 
   const handleToggleActive = useCallback(async (id: string, current: boolean | undefined) => {
     try {
-      const res = await fetch(`/api/resources/${id}`, {
+      const res = await csrfFetch(`/api/resources/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ isActive: !(current ?? true) }),
       })
       const data = await res.json()
@@ -76,52 +86,24 @@ export function useResourceActions(refresh: () => void) {
   return { handleDelete, handleToggleActive }
 }
 
-interface Course {
-  id: number
-  name: string
-  slug: string
-  sortOrder: number
-}
-
-interface Area {
-  id: number
-  name: string
-  slug: string
-  sortOrder: number
-}
-
-interface Subarea {
-  id: number
-  name: string
-  slug: string
-  areaId: number
+interface CoursesData {
+  courses: Course[]
+  areas: Area[]
+  subareas: Subarea[]
 }
 
 /** Hook para obtener cursos, áreas y subáreas desde la base de datos */
 export function useCoursesData() {
-  const [courses, setCourses] = useState<Course[]>([])
-  const [areas, setAreas] = useState<Area[]>([])
-  const [subareas, setSubareas] = useState<Subarea[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data, error, isLoading } = useSWR<CoursesData>('/api/courses', fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 300_000,
+  })
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const res = await fetch('/api/courses')
-        if (!res.ok) throw new Error('Error al cargar datos')
-        const data = await res.json()
-        setCourses(data.courses || [])
-        setAreas(data.areas || [])
-        setSubareas(data.subareas || [])
-      } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Error desconocido')
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchData()
-  }, [])
-
-  return { courses, areas, subareas, loading, error }
+  return {
+    courses: data?.courses || [],
+    areas: data?.areas || [],
+    subareas: data?.subareas || [],
+    loading: isLoading,
+    error: error ? (error instanceof Error ? error.message : 'Error desconocido') : null,
+  }
 }

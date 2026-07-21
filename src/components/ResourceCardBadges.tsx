@@ -1,6 +1,4 @@
-'use client'
-
-import { Download, Clock, AlertTriangle } from 'lucide-react'
+import { Download, Clock } from 'lucide-react'
 import type { Resource } from '@/lib/data'
 
 interface ResourceCardBadgesProps {
@@ -19,7 +17,7 @@ export function ResourceCardBadges({ resource, isPaused, promoActive, isAdmin }:
           <Download size={12} /> Ya comprado
         </span>
       ) : promoActive ? (
-        <span className="absolute top-2 right-2 bg-amber-500 text-white badge text-xs flex items-center gap-1 z-[2]">
+        <span className="absolute top-2 right-2 bg-amber-600 text-white badge text-xs flex items-center gap-1 z-[2]">
           <Clock size={12} /> Promo
         </span>
       ) : resource.isFree ? (
@@ -29,7 +27,9 @@ export function ResourceCardBadges({ resource, isPaused, promoActive, isAdmin }:
       )}
 
       {isAdmin && isPaused && (
-        <span className="absolute top-2 left-2 bg-red-500 text-white badge text-xs z-[2]">En pausa</span>
+        <span className="absolute top-2 right-2 bg-red-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full z-[3] shadow-lg">
+          En pausa
+        </span>
       )}
     </>
   )

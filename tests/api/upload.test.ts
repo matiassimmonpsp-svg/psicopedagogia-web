@@ -14,9 +14,11 @@ import { POST as uploadPOST } from '@/app/api/upload/route'
 import { requireAdmin } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import * as fs from 'fs'
+import * as fsPromises from 'fs/promises'
 import * as path from 'path'
 
 vi.mock('fs')
+vi.mock('fs/promises')
 vi.mock('path')
 
 const makeReq = (file: File | null, type = 'pdf') => {
@@ -34,8 +36,8 @@ describe('POST /api/upload', () => {
     vi.clearAllMocks()
     vi.mocked(requireAdmin).mockResolvedValue({ id: '1', name: 'Admin', email: 'a@b.cl', role: 'admin' })
     vi.mocked(fs.existsSync).mockReturnValue(false)
-    vi.mocked(fs.mkdirSync).mockImplementation(() => undefined)
-    vi.mocked(fs.writeFileSync).mockImplementation(() => undefined)
+    vi.mocked(fsPromises.mkdir).mockResolvedValue(undefined)
+    vi.mocked(fsPromises.writeFile).mockResolvedValue(undefined)
     vi.mocked(path.join).mockImplementation((...args) => args.join('/'))
     vi.mocked(path.resolve).mockImplementation((...args) => args.join('/'))
   })
@@ -120,13 +122,13 @@ describe('POST /api/upload', () => {
   })
 
   it('returns 500 on unexpected error', async () => {
-    vi.mocked(fs.writeFileSync).mockImplementation(() => { throw new Error('Disk full') })
+    vi.mocked(fsPromises.writeFile).mockRejectedValue(new Error('Disk full'))
     const pdfBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46])
     const file = new File([pdfBytes], 'test.pdf', { type: 'application/pdf' })
     const req = makeReq(file)
     const res = await uploadPOST(req)
     expect(res.status).toBe(500)
     const data = await res.json()
-    expect(data.error).toBe('Disk full')
+    expect(data.error).toBe('Error al subir')
   })
 })

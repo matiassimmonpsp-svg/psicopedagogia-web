@@ -1,5 +1,12 @@
-import { InstagramWidget } from '@/components/InstagramWidget'
-import { MessageCircle, Users } from 'lucide-react'
+import dynamic from 'next/dynamic'
+import type { Metadata } from 'next'
+
+const InstagramWidget = dynamic(() => import('@/components/InstagramWidget').then(mod => mod.InstagramWidget), { ssr: false })
+
+export const metadata: Metadata = {
+  title: 'Comunidad',
+  description: 'Únete a la comunidad de profesionales de la psicopedagogía en Chile. Síguenos para tips educativos, nuevos lanzamientos y contenido exclusivo.',
+}
 
 export default function CommunityPage() {
   return (

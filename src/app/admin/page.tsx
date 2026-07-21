@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { FileText, Users, ShoppingCart, Download } from 'lucide-react'
 import Link from 'next/link'
 import ResourceTable from '@/components/ResourceTable'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useCatalog, useResourceActions } from '@/lib/hooks'
 import { logger } from '@/lib/logger'
 
@@ -16,10 +17,25 @@ export default function AdminDashboard() {
   const { resources, loading, refresh } = useCatalog()
   const { handleDelete } = useResourceActions(refresh)
   const [stats, setStats] = useState<AdminStats>({ users: 0, orders: 0 })
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null)
 
   useEffect(() => {
     fetch('/api/admin/stats').then(r => r.json()).then(setStats).catch((err) => logger.error('Error al cargar estadísticas', { error: err }))
   }, [])
+
+  function requestDelete(id: string, title: string) {
+    setPendingDelete({ id, title })
+    setConfirmOpen(true)
+  }
+
+  function confirmDelete() {
+    if (pendingDelete) {
+      handleDelete(pendingDelete.id, pendingDelete.title)
+      setPendingDelete(null)
+      setConfirmOpen(false)
+    }
+  }
 
   const cards = [
     { label: 'Recursos totales', value: resources.length, icon: FileText, color: 'text-blue-600 bg-blue-100' },
@@ -32,7 +48,7 @@ export default function AdminDashboard() {
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-8">Dashboard</h1>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div data-testid="admin-stats" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {cards.map(s => (
           <div key={s.label} className="card p-5">
             <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${s.color}`}>
@@ -49,8 +65,19 @@ export default function AdminDashboard() {
             <h2 className="font-semibold text-gray-900">Recursos</h2>
             <Link href="/admin/nuevo-recurso" className="btn-primary text-sm">Nueva entrada</Link>
           </div>
-          <ResourceTable resources={resources} loading={loading} onDelete={handleDelete} />
+          <div data-testid="admin-resources-table">
+            <ResourceTable resources={resources} loading={loading} onDelete={requestDelete} />
+          </div>
         </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Eliminar recurso"
+        message={pendingDelete ? `¿Eliminar "${pendingDelete.title}"? Esta acción no se puede deshacer.` : ''}
+        danger
+        onConfirm={confirmDelete}
+        onCancel={() => { setConfirmOpen(false); setPendingDelete(null) }}
+      />
     </div>
   )
 }

@@ -1,15 +1,10 @@
 'use client'
 
-import { Search, X, ChevronLeft, ChevronRight, BookOpen, Sparkles, Gift, ExternalLink, Clock, AlertTriangle, Download, Loader2, FileText } from 'lucide-react'
+import { Search, X, BookOpen, ExternalLink, Clock, AlertTriangle, Download, Loader2, FileText } from 'lucide-react'
 import Link from 'next/link'
-import { useState, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
-import toast from 'react-hot-toast'
-import { useAuth } from '@/context/AuthContext'
 import { courses, areas } from '@/lib/data'
-import { downloadFile } from '@/lib/utils'
+
 import type { DownloadItem } from '@/lib/data'
-import { logger } from '@/lib/logger'
 
 // ============================================================
 // Componente: Filtros laterales
@@ -45,10 +40,11 @@ export function DownloadsFilters({
     <aside className="lg:w-64 shrink-0">
       <div className="card p-5 space-y-6">
         <div>
-          <label className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+          <label htmlFor="downloads-search" className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
             <Search size={13} /> Buscar
           </label>
           <input
+            id="downloads-search"
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -179,7 +175,9 @@ interface ItemRowProps {
 export function DownloadItemRow({ item, downloadingId, onDownload }: ItemRowProps) {
   const isDownloading = downloadingId === item.id
   const isPurchased = item.type === 'purchased'
-  const isPaused = item.isActive === false
+  const isResourcePaused = item.isActive === false
+  const isAreaPaused = item.areaIsActive === false
+  const isPaused = isResourcePaused || isAreaPaused
 
   return (
     <div className={`card p-5 flex items-center justify-between gap-4 ${isPaused ? 'border-amber-200 bg-amber-50/50' : ''}`}>
@@ -208,7 +206,9 @@ export function DownloadItemRow({ item, downloadingId, onDownload }: ItemRowProp
           </p>
           {isPaused && (
             <p className="text-xs text-amber-600 mt-1 font-medium">
-              Recurso en revisión — Volverá a estar disponible pronto.
+              {isResourcePaused
+                ? 'Recurso en revisión — Volverá a estar disponible pronto.'
+                : 'Área temporalmente no disponible — Volverá a estar disponible pronto.'}
             </p>
           )}
         </div>

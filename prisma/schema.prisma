@@ -109,6 +109,8 @@ model Resource {
   @@index([isFree])
   @@index([isActive])
   @@index([createdAt])
+  @@index([isFree, isActive])
+  @@index([downloadsCount])
   @@map("resources")
 }
 
@@ -144,17 +146,20 @@ model ResourceTag {
 // status: "cart" | "completed"
 // ============================================================
 model Order {
-  id            String       @id @default(cuid())
-  userId        String       @map("user_id")
-  totalClp      Int          @map("total_clp")
-  status        String       @default("cart")     // "cart" | "completed"
-  paymentMethod String?      @map("payment_method")
-  paymentId     String?      @map("payment_id")
-  createdAt     DateTime     @default(now()) @map("created_at")
-  user          User         @relation(fields: [userId], references: [id])
-  items         OrderItem[]
+  id              String        @id @default(cuid())
+  userId          String        @map("user_id")
+  totalClp        Int           @map("total_clp")
+  status          String        @default("cart")     // "cart" | "completed"
+  paymentMethod   String?       @map("payment_method")
+  paymentId       String?       @map("payment_id")
+  discountCodeId  Int?          @map("discount_code_id")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  user            User          @relation(fields: [userId], references: [id])
+  discountCode    DiscountCode? @relation(fields: [discountCodeId], references: [id])
+  items           OrderItem[]
 
   @@index([userId, status])
+  @@index([discountCodeId])
   @@map("orders")
 }
 
@@ -170,6 +175,7 @@ model OrderItem {
   order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   resource   Resource @relation(fields: [resourceId], references: [id])
 
+  @@unique([orderId, resourceId])
   @@index([orderId])
   @@index([resourceId])
   @@map("order_items")
@@ -189,6 +195,7 @@ model Download {
 
   @@index([userId])
   @@index([resourceId])
+  @@index([userId, resourceId])
   @@map("downloads")
 }
 
@@ -204,6 +211,7 @@ model DiscountCode {
   expiresAt   DateTime? @map("expires_at")
   isActive    Boolean   @default(true) @map("is_active")
   createdAt   DateTime  @default(now()) @map("created_at")
+  orders      Order[]
 
   @@index([code])
   @@map("discount_codes")

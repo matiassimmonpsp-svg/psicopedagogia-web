@@ -3,10 +3,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
-import { Sparkles, Gift, ExternalLink, Loader2 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
-import { courses, areas } from '@/lib/data'
-import { downloadFile } from '@/lib/utils'
+import { downloadFile, generateSlug } from '@/lib/utils'
 import type { DownloadItem } from '@/lib/data'
 import { logger } from '@/lib/logger'
 import {
@@ -51,7 +49,7 @@ export default function DownloadsPage() {
   async function handleDownload(item: DownloadItem) {
     setDownloadingId(item.id)
     try {
-      await downloadFile(`/api/download/${item.resourceId}`, `${item.title.replace(/[^a-z0-9]+/gi, '-')}.pdf`)
+      await downloadFile(`/api/download/${item.resourceId}`, `${generateSlug(item.title)}.pdf`)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : ''
       if (message === 'No autorizado') { router.push('/login'); return }

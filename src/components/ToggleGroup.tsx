@@ -18,19 +18,22 @@ interface Props {
   value: string
   onChange: (value: string) => void
   columns?: number
+  ariaLabelledby?: string
 }
 
 /** Grupo de botones tipo toggle. Soporta iconos y colores custom. */
-export default function ToggleGroup({ options, value, onChange, columns = 2 }: Props) {
+export default function ToggleGroup({ options, value, onChange, columns = 2, ariaLabelledby }: Props) {
   const gridCols = columns === 3 ? 'grid-cols-3' : columns === 2 ? 'grid-cols-2' : 'grid-cols-1'
   return (
-    <div className={`grid ${gridCols} gap-3`}>
+    <div className={`grid ${gridCols} gap-3`} role="radiogroup" aria-labelledby={ariaLabelledby}>
       {options.map(op => {
         const activo = value === op.value
         return (
           <button
             key={op.value}
             type="button"
+            role="radio"
+            aria-checked={activo}
             onClick={() => onChange(op.value)}
             className={`flex items-center gap-3 px-5 py-4 rounded-xl text-sm font-semibold border-2 transition-all w-full justify-center ${
               activo

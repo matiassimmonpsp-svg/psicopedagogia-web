@@ -1,14 +1,20 @@
 import { NextResponse } from 'next/server'
-import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { requireSession } from '@/lib/api-helpers'
+import { logger } from '@/lib/logger'
 
 export async function GET() {
-  const user = await getSession()
-  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  try {
+    const user = await requireSession()
+    if (user instanceof NextResponse) return user
 
-  const count = await prisma.order.count({
-    where: { userId: user.id, status: 'completed' },
-  })
+    const count = await prisma.order.count({
+      where: { userId: user.id, status: 'completed' },
+    })
 
-  return NextResponse.json({ count })
+    return NextResponse.json({ count })
+  } catch (err: unknown) {
+    logger.error('Error al contar pedidos', { error: err instanceof Error ? err.message : err })
+    return NextResponse.json({ error: 'Error al contar pedidos' }, { status: 500 })
+  }
 }

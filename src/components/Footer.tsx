@@ -18,16 +18,16 @@ export function Footer() {
               <BookOpen className="text-primary-400" size={24} />
               <span className="font-bold text-lg text-white">Psicopedagogía<span className="text-primary-400">CL</span></span>
             </div>
-            <p className="text-sm text-gray-400 max-w-md">
+            <p className="text-sm text-gray-300 max-w-md">
               Plataforma profesional de material e instrumentos de evaluación psicopedagógica para el sistema escolar chileno. Apoyando a profesionales de la educación y la salud.
             </p>
-            <p className="flex items-center gap-1 text-sm text-gray-400 mt-4">
+            <p className="flex items-center gap-1 text-sm text-gray-300 mt-4">
               Hecho con <Heart size={14} className="text-red-400" /> para la comunidad psicopedagógica de Chile.
             </p>
           </div>
 
           <div>
-            <h4 className="font-semibold text-white mb-4">Explorar</h4>
+            <h3 className="font-semibold text-white mb-4">Explorar</h3>
             <ul className="space-y-2 text-sm">
               <li><Link href="/" className="hover:text-white transition-colors">Inicio</Link></li>
               <li><Link href="/material-educativo" className="hover:text-white transition-colors">Material Educativo</Link></li>
@@ -37,7 +37,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="font-semibold text-white mb-4">Cuenta</h4>
+            <h3 className="font-semibold text-white mb-4">Cuenta</h3>
             <ul className="space-y-2 text-sm">
               <li><Link href="/login" className="hover:text-white transition-colors">Iniciar Sesión</Link></li>
               <li><Link href="/registro" className="hover:text-white transition-colors">Registrarse</Link></li>
@@ -47,7 +47,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-gray-800 mt-8 pt-8 text-sm text-gray-500 text-center">
+        <div className="border-t border-gray-800 mt-8 pt-8 text-sm text-gray-400 text-center">
           &copy; {new Date().getFullYear()} PsicopedagogíaCL. Todos los derechos reservados.
         </div>
       </div>

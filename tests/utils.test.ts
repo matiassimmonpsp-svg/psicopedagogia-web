@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatClp, hasActivePromo, normalizeText, expandSearchQuery, getPromoEndDate } from '@/lib/utils'
+import { formatClp, hasActivePromo, normalizeText, expandSearchQuery } from '@/lib/utils'
 
 describe('formatClp', () => {
   it('formatea 0 como $0', () => {
@@ -64,22 +64,5 @@ describe('expandSearchQuery', () => {
 
   it('normaliza cada token', () => {
     expect(expandSearchQuery('Comprensión Lectora')).toEqual(['comprension', 'lectora'])
-  })
-})
-
-describe('getPromoEndDate', () => {
-  it('retorna null si no hay promo', () => {
-    expect(getPromoEndDate(null)).toBeNull()
-  })
-
-  it('retorna fecha si es futura', () => {
-    const future = new Date(Date.now() + 86400000)
-    const result = getPromoEndDate(future.toISOString())
-    expect(result).toBeInstanceOf(Date)
-    expect(result!.getTime()).toBeGreaterThan(Date.now())
-  })
-
-  it('retorna null si la promo expiró', () => {
-    expect(getPromoEndDate('2020-01-01')).toBeNull()
   })
 })

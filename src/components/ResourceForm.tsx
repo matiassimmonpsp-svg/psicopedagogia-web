@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { Save, Check, ArrowLeft, ArrowRight, Eye } from 'lucide-react'
 import { useCoursesData } from '@/lib/hooks'
+import { csrfFetch } from '@/lib/csrf-client'
 import StepTypeCourse from '@/components/form/StepTypeCourse'
 import StepContent from '@/components/form/StepContent'
 import StepPrice from '@/components/form/StepPrice'
@@ -116,7 +117,7 @@ export default function ResourceForm({ mode, resourceId }: ResourceFormProps) {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('type', type)
-    const res = await fetch('/api/upload', { method: 'POST', body: formData })
+    const res = await csrfFetch('/api/upload', { method: 'POST', body: formData })
     if (!res.ok) throw new Error('Error al subir archivo')
     const data = await res.json()
     return data.url
@@ -126,8 +127,6 @@ export default function ResourceForm({ mode, resourceId }: ResourceFormProps) {
     e.preventDefault()
     setLoading(true)
     setSuccess(false)
-
-    const finalTitle = title
 
     try {
       let uploadedPdfUrl = isEdit ? existingPdfPath : ''
@@ -157,11 +156,11 @@ export default function ResourceForm({ mode, resourceId }: ResourceFormProps) {
           return
         }
 
-        const res = await fetch(`/api/resources/${resourceId}`, {
+        const res = await csrfFetch(`/api/resources/${resourceId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            title: finalTitle, description, resourceType, courseId, areaId, subareaId,
+            title, description, resourceType, courseId, areaId, subareaId,
             isFree, priceClp: price || null, tags,
             filePath: pdfFile ? uploadedPdfUrl : undefined,
             editablePath: editableFile ? uploadedEditableUrl : (existingEditablePath !== null ? existingEditablePath : null),
@@ -185,11 +184,11 @@ export default function ResourceForm({ mode, resourceId }: ResourceFormProps) {
           return
         }
 
-        const res = await fetch('/api/resources', {
+        const res = await csrfFetch('/api/resources', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            title: finalTitle, description, resourceType, courseId, areaId, subareaId,
+            title, description, resourceType, courseId, areaId, subareaId,
             isFree, priceClp: price || null, tags,
             filePath: uploadedPdfUrl,
             editablePath: uploadedEditableUrl || null,
